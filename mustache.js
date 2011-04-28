@@ -122,6 +122,10 @@ var Mustache = (function(undefined) {
 		return token.match(/\r?\n/);
 	}
 	
+	function is_whitespace(token) {
+		return token.match(/\s*/);
+	}
+	
 	function is_function(a) {
 		return a && typeof a === 'function';
 	}
