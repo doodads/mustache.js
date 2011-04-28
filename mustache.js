@@ -123,7 +123,7 @@ var Mustache = (function(undefined) {
 	}
 	
 	function is_whitespace(token) {
-		return token.match(/\s*/);
+		return token.match(/^\s*$/);
 	}
 	
 	function is_function(a) {
@@ -163,16 +163,27 @@ var Mustache = (function(undefined) {
 	/* BEGIN Compiler */
 		
 	function compile(state, noReturn) {
+		function make_standalone() {
+			return { is_standalone: true, tags: 0 };
+		}
+		
 		var n, c, token;
 		
+			console.log('pragmas are', state.pragmas);
+			
 		for (n = state.tokens.length;state.cursor<n && !state.terminated;++state.cursor) {
 			token = state.tokens[state.cursor];
 			if (token==='' || token===undefined) {
 				continue;
 			}
 			
+			if (state.standalone.tags > 1 || state.pragmas['PRESPEC']) {
+				state.standalone.is_standalone = false;
+			}
+		
 			if (token.indexOf(state.openTag)===0) {
 				c = token.charAt(state.openTag.length);
+				state.standalone.tags++;
 				if (state.parser[c]) {
 					state.parser[c](state, token, c);
 				} else {
@@ -185,6 +196,7 @@ var Mustache = (function(undefined) {
 			if (is_newline(token)) {
 				state.metrics.character = 1;
 				state.metrics.line++;
+				state.standalone = make_standalone();
 			} else {
 				state.metrics.character+=token.length;
 			}
@@ -243,6 +255,7 @@ var Mustache = (function(undefined) {
 			, openTag: openTag
 			, closeTag: closeTag
 			, parser: default_parser
+			, standalone: { is_standalone: true, tags: 0 } /* must be object so that closure scope can be established */
 			, pragmas: {}
 			, code: code
 			, send_code_func: function(f) {
@@ -274,6 +287,9 @@ var Mustache = (function(undefined) {
 				if (options) {
 					state.pragmas['IMPLICIT-ITERATOR'].iterator = options['iterator'];
 				}
+			}
+			, 'PRESPEC': function() {
+				state.pragmas['PRESPEC'] = true;
 			}
 		};
 		
@@ -353,7 +369,22 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		state.send_code_func(function(context, send_func) { send_func(token); });	
+		if (state.metrics.character===1 && is_whitespace(token)) {
+			// if at the start of a line and the token is whitespace
+			// hold on to the token for later reference
+			var standalone = state.standalone;
+			state.send_code_func(function(context, send_func) {
+				if (!standalone.is_standalone) {
+					send_func(token);
+				}
+			});
+		} else if (state.standalone.is_standalone && is_newline(token)) {
+			// standalone + newline = ghosting
+		} else {
+			// all other cases switch over to non-standalone mode
+			state.standalone.is_standalone = false;
+			state.send_code_func(function(context, send_func) { send_func(token); });	
+		}		
 	}
 	
 	function interpolate(state, token, mark) {
@@ -369,6 +400,9 @@ var Mustache = (function(undefined) {
 		} else if (mark==='&') {
 			escape = prefix = true;
 		}
+		
+		// interpolation tags are always 
+		state.standalone.is_standalone = false;
 		
 		var variable = get_variable_name(state, token, prefix, postfix);
 		state.send_code_func((function(variable, escape) { return function(context, send_func) {
@@ -445,6 +479,7 @@ var Mustache = (function(undefined) {
 			program, 
 			new_state = create_compiler_state(template, state.partials, state.openTag, state.closeTag, false);
 		
+		new_state.standalone.is_standalone = s.standalone.is_standalone;
 		new_state.metrics = s.metrics;
 		program = compile(new_state);
 		
@@ -556,6 +591,7 @@ var Mustache = (function(undefined) {
 		new_state.metrics.character = state.metrics.character + token.length;
 		new_state.metrics.partial = state.metrics.partial;
 		new_state.section = state.section;
+		new_state.standalone = state.standalone;
 		if (new_state.section) {
 			new_state.section.template_buffer.push(token);
 		}
@@ -581,6 +617,7 @@ var Mustache = (function(undefined) {
 					, line: state.metrics.line
 					, character: state.metrics.character + token.length
 				}
+				, standalone: state.standalone
 			};
 		} else {
 			state.section.child_sections.push(variable);
@@ -589,7 +626,11 @@ var Mustache = (function(undefined) {
 	}
 	
 	function buffer_section(state, token) {
-		state.section.template_buffer.push(token);
+		// if the first token being added to the section is a newline character,
+		// *and* the line is determined to be standalone, then the newline is ignored
+		if (state.section.template_buffer.length !== 0 || !is_newline(token) || !state.standalone.is_standalone) {
+			state.section.template_buffer.push(token);
+		}
 	}
 	
 	function end_section(state, token) {
@@ -631,16 +672,16 @@ var Mustache = (function(undefined) {
 		},
 		
 		compile: function(template, partials) {
-			var p = {};
+			var p = {}, key, program;
 			if (partials) {
-				for (var key in partials) {
+				for (key in partials) {
 					if (partials.hasOwnProperty(key)) {
 						p[key] = partials[key];
 					}
 				}
 			}
 		
-			var program = compile(create_compiler_state(template, p));
+			program = compile(create_compiler_state(template, p));
 			return function(view, send_func) {
 				var o = [],
 					user_send_func = send_func || function(str) {

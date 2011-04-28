@@ -707,3 +707,41 @@ test("Regression Suite", function() {
 		, 'Nested Sections with the same name'
 	);
 });
+
+test("Spec", function() {
+	equals(
+		Mustache.to_html(
+			'{{!blah!}}\nHi yo.'
+		)
+		, 'Hi yo.'
+		, 'Something something something.'
+	);
+	
+	equals(
+		Mustache.to_html(
+			' {{!blah!}}\ntry again'
+		)
+		, 'try again'
+		, 'Something something something.'
+	);
+	
+	equals(
+		Mustache.to_html(
+			'Begin.\n{{>partial}}\nEnd.'
+			, {}
+			, {partial: 'For aiur.'}
+		)
+		, 'Begin.\nFor aiur.End.'
+		, 'Something else'
+	);
+	
+	equals(
+		Mustache.to_html(
+			'Begin.\n{{#tag}}\nhi\n{{/tag}}\nEnd.'
+			, {tag: true}
+			, {}
+		)
+		, 'Begin.\nhi\nEnd.'
+		, 'Something else'
+	);
+});
