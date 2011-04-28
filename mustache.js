@@ -378,9 +378,7 @@ var Mustache = (function(undefined) {
 					send_func(token);
 				}
 			});
-		} else if (state.standalone.is_standalone && is_newline(token)) {
-			// standalone + newline = ghosting
-		} else {
+		} else if (!state.standalone.is_standalone || !is_newline(token)) {
 			// all other cases switch over to non-standalone mode
 			state.standalone.is_standalone = false;
 			state.send_code_func(function(context, send_func) { send_func(token); });	
