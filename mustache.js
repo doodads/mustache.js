@@ -424,26 +424,7 @@ var Mustache = (function(undefined) {
 				, state.partials				
 			);
 			new_state.metrics.partial = variable;
-			// TODO: Determine if partials should inherit pragma state from parent
-			program = compile(new_state);
-			
-			state.partials[variable] = function(context, send_func) {
-				var value = find_in_stack(variable, context);
-
-				if (value) {
-					// TODO: According to mustache-spec, partials do not act as implicit sections
-					// this behaviour was carried over from janl's mustache and should either
-					// be discarded or replaced with a pragma
-					context.push(value);
-				}
-
-				program(context, send_func);
-				
-				if (value) {
-					// TODO: See above
-					context.pop();
-				}
-			};
+			state.partials[variable] = compile(new_state);
 		}
 		
 		state.send_code_func(function(context, send_func) { state.partials[variable](context, send_func); });
