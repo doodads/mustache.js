@@ -522,7 +522,7 @@ var Mustache = (function(undefined) {
 		'&': buffer_section,
 		'{': buffer_section,
 		'>': buffer_section,
-		'=': change_delimiter,		
+		'=': change_delimiter,
 		def: buffer_section,
 		text: buffer_section
 	};
