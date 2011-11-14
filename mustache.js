@@ -332,17 +332,34 @@ var Mustache = (function(undefined) {
 	}
 	
 	function find_in_stack(name, context_stack) {
-		var value;
-				
-		value = find(name, context_stack[context_stack.length-1]);
-		if (value!==undefined) { return value; }
+		var value = undefined, 
+			n = context_stack.length, i = n, j;
 		
-		if (context_stack.length>1) {
-			value = find(name, context_stack[0]);
-			if (value!==undefined) { return value; }
-		}
+		do {
+			value = find(name, context_stack[--i]);
+			if (value!==undefined) { 
+				if (i > 0 && (is_object(value) || is_array(value))) {
+					// if the value has the potential of creating a stack-entry, 
+					// do a ref comparison on the remaining stack entries
+					for (j = i + 1; j < n; ++j) {
+						if (context_stack[j] === value) {
+							value = undefined;
+							break;
+						}
+					}
+					
+					if (value === undefined) {
+						continue;
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		} while (i !== 0);
 		
-		return undefined;
+		return value;
 	}
 	
 	function find_with_dot_notation(name, context) {
@@ -469,11 +486,13 @@ var Mustache = (function(undefined) {
 			state.send_code_func((function(program, variable, template, partials){ return function(context, send_func) {
 				var value = find_with_dot_notation(variable, context);
 				if (is_array(value)) { // Enumerable, Let's loop!
+					context.push(value);
 					for (var i=0, n=value.length; i<n; ++i) {
 						context.push(value[i]);
 						program(context, send_func);
 						context.pop();
 					}
+					context.pop();
 				} else if (is_object(value)) { // Object, Use it as subcontext!
 					context.push(value);
 					program(context, send_func);
