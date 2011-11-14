@@ -553,7 +553,7 @@ test("'%' (Pragmas)", function() {
 	
 	equals(
 		Mustache.to_html(
-			'{{%IMPLICIT-ITERATOR iterator=rob}}{{=<% %>=}}<%#dataSet%><%rob%>:<%/dataSet%>',
+			'{{=<% %>=}}{{%IMPLICIT-ITERATOR iterator=rob}}<%#dataSet%><%rob%>:<%/dataSet%>',
 			{ dataSet: [ 'Object 1', 'Object 2', 'Object 3' ] },
 			{}
 		),
