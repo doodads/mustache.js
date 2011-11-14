@@ -150,7 +150,7 @@ var Mustache = (function(undefined) {
 			}
 		}
 		
-		this.message = str + message;		
+		this.message = str + message;
 		if (metrics) {
 			this.line = metrics.line;
 			this.character = metrics.character;
@@ -215,7 +215,7 @@ var Mustache = (function(undefined) {
 		openTag = openTag || '{{';
 		closeTag = closeTag || '}}';
 
-		var tokenizer;		
+		var tokenizer;
 		if (openTag === '{{' && closeTag === '}}') {
 			tokenizer = default_tokenizer;
 		} else {
@@ -333,7 +333,7 @@ var Mustache = (function(undefined) {
 	
 	function find_in_stack(name, context_stack) {
 		var value;
-				
+		
 		value = find(name, context_stack[context_stack.length-1]);
 		if (value!==undefined) { return value; }
 		
@@ -354,7 +354,7 @@ var Mustache = (function(undefined) {
 			value = find(name_components[i], value);
 			i++;
 		}
-	
+		
 		if (i!==n && !value) {
 			value = undefined;
 		}
@@ -394,7 +394,7 @@ var Mustache = (function(undefined) {
 			} else {
 				value = find_with_dot_notation(variable, context);
 			}
-
+			
 			if (value!==undefined) {
 				if (!escape) {
 					value = escapeHTML('' + value);
@@ -421,7 +421,7 @@ var Mustache = (function(undefined) {
 			
 			var new_state = create_compiler_state(
 				template
-				, state.partials				
+				, state.partials
 			);
 			new_state.metrics.partial = variable;
 			// TODO: Determine if partials should inherit pragma state from parent
@@ -608,7 +608,7 @@ var Mustache = (function(undefined) {
 		if (state.section.child_sections.length > 0) {
 			var child_section = state.section.child_sections[state.section.child_sections.length-1];
 			if (child_section === variable) {
-				state.section.child_sections.pop();			
+				state.section.child_sections.pop();
 				state.section.template_buffer.push(token);
 			} else {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
