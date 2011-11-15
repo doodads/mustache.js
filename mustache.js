@@ -205,7 +205,7 @@ var Mustache = (function(undefined) {
 					for (var i=0,n=codeList.length;i<n;++i) {
 						codeList[i](context, send_func);
 					}
-				}
+				};
 			}
 		}
 	}
