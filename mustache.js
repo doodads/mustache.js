@@ -138,6 +138,11 @@ var Mustache = (function(undefined) {
 		return Object.prototype.toString.call(a) === '[object Array]';
 	}
 
+	// Checks whether a value is truthy or false or 0
+	function is_kinda_truthy(bool) {
+		return bool === false || bool === 0 || bool;
+	}
+
 	var MustacheError = function(message, metrics) {
 		var str = '';
 
@@ -314,22 +319,15 @@ var Mustache = (function(undefined) {
 	from the view object
 	*/
 	function find(name, context) {
-		// Checks whether a value is truthy or false or 0
-		function is_kinda_truthy(bool) {
-			return bool === false || bool === 0 || bool;
-		}
+		var value = context[name];
 		
-		var value;
-		
-		if (is_kinda_truthy(context[name])) {
-			value = context[name];
+		if (is_kinda_truthy(value)) {
+			if (is_function(value)) {
+				return value.apply(context);
+			} else {
+				return value;
+			}
 		}
-
-		if (is_function(value)) {
-			return value.apply(context);
-		}
-		
-		return value;
 	}
 	
 	function find_in_stack(name, context_stack) {
