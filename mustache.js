@@ -143,6 +143,13 @@ var Mustache = (function(undefined) {
 		return bool === false || bool === 0 || bool;
 	}
 
+	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g;
+	function escapeHTML(str) {
+		return str.replace(escapeRegex1,'&amp;')
+			.replace(escapeRegex2,'&lt;')
+			.replace(escapeRegex3,'&gt;');
+	}
+
 	var MustacheError = function(message, metrics) {
 		var str = '';
 
@@ -364,16 +371,10 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		state.send_code_func(function(context, send_func) { send_func(token); });	
+		state.send_code_func(function(context, send_func) { send_func(token); });
 	}
-	
+
 	function interpolate(state, token, mark) {
-		function escapeHTML(str) {
-			return str.replace(/&/g,'&amp;')
-				.replace(/</g,'&lt;')
-				.replace(/>/g,'&gt;');
-		}
-		
 		var escape, prefix, postfix;
 		if (mark==='{') {
 			escape = prefix = postfix = true;
