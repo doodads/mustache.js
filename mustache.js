@@ -121,8 +121,9 @@ var Mustache = (function(undefined) {
 		return text.replace(escapeCompiledRegex, '\\$1');
 	}
 	
+	var newlineCompiledRegex = /\r?\n/;
 	function is_newline(token) {
-		return token.match(/\r?\n/);
+		return token.match(newlineCompiledRegex);
 	}
 	
 	function is_function(a) {
