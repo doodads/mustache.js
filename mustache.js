@@ -659,8 +659,7 @@ var Mustache = (function(undefined) {
 		Turns a template and view into HTML
 		*/
 		to_html: function(template, view, partials, send_func) {
-			var program = Mustache.compile(template, partials),
-				result = program(view, send_func);
+			var result = Mustache.compile(template, partials)(view, send_func);
 			
 			if (!send_func) {
 				return result;
@@ -668,8 +667,7 @@ var Mustache = (function(undefined) {
 		},
 		
 		format: function(template/*, args */) {
-			var program = Mustache.compile(template),
-				args = Array.prototype.slice.call(arguments),
+			var args = Array.prototype.slice.call(arguments),
 				view = {};
 			
 			args.shift();
@@ -677,7 +675,7 @@ var Mustache = (function(undefined) {
 				view['' + i] = args[i];
 			}
 			
-			return program(view);
+			return Mustache.compile(template)(view);
 		},
 
 		Error: MustacheError
