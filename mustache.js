@@ -195,18 +195,11 @@ var Mustache = (function(undefined) {
 		}
 		
 		if (!noReturn) {
-			var codeList = state.code;
-			if (codeList.length === 0) {
-				return noop;
-			} else if (codeList.length === 1) {
-				return codeList[0];
-			} else {
-				return function(context, send_func) {
-					for (var i=0,n=codeList.length;i<n;++i) {
-						codeList[i](context, send_func);
-					}
+			return function(context, send_func) {
+				for (var i=0;fn=state.code[i++];) {
+					fn(context, send_func);
 				}
-			}
+			};
 		}
 	}
 	
