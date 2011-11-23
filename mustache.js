@@ -378,7 +378,7 @@ var Mustache = (function(undefined) {
 		var variable = get_variable_name(state, token, prefix, postfix),
 			implicit_iterator = (state.pragmas['IMPLICIT-ITERATOR'] || {iterator: '.'}).iterator;
 		
-		state.send_code_func((function(variable, escape) { return function(context, send_func) {
+		state.send_code_func((function(variable, escape, implicit_iterator) { return function(context, send_func) {
 			var value;
 			
 			if ( variable === implicit_iterator ) { // special case for implicit iterator (usually '.')
@@ -395,7 +395,7 @@ var Mustache = (function(undefined) {
 				
 				send_func('' + value);
 			}
-		};})(variable, escape));
+		};})(variable, escape, implicit_iterator));
 	}
 	
 	function partial(state, token) {
