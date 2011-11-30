@@ -345,8 +345,6 @@ var Mustache = (function(undefined) {
 			value = find(name, context_stack[0]);
 			if (value!==undefined) { return value; }
 		}
-		
-		return undefined;
 	}
 	
 	function find_with_dot_notation(name, context) {
