@@ -104,6 +104,10 @@ var Mustache = (function(undefined) {
 		}
 	})();
 
+	/* BEGIN Constants */
+	var IMPLICIT_ITERATOR_PRAGMA_TOKEN = 'IMPLICIT-ITERATOR';
+	/* END Constants */
+	
 	/* BEGIN Helpers */
 	function noop() {}
 	
@@ -272,10 +276,9 @@ var Mustache = (function(undefined) {
 		return state;
 	}
 	
-	var pragma_directives = {
-		'IMPLICIT-ITERATOR': function(state, options) {
-			state.pragmas['IMPLICIT-ITERATOR'] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
-		}
+	var pragma_directives = {};
+	pragma_directives[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = function(state, options) {
+		state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
 	};
 		
 	function pragmas(state) {
@@ -395,7 +398,7 @@ var Mustache = (function(undefined) {
 				
 				send_func('' + value);
 			}
-		};})(get_variable_name(state, token, prefix, postfix), (state.pragmas['IMPLICIT-ITERATOR'] || {iterator: '.'}).iterator, escape));
+		};})(get_variable_name(state, token, prefix, postfix), (state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] || {iterator: '.'}).iterator, escape));
 	}
 	
 	function partial(state, token) {
