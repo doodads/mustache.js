@@ -104,6 +104,10 @@ var Mustache = (function(undefined) {
 		}
 	})();
 
+	/* BEGIN Constants */
+	var IMPLICIT_ITERATOR_PRAGMA_TOKEN = 'IMPLICIT-ITERATOR';
+	/* END Constants */
+	
 	/* BEGIN Helpers */
 	function noop() {}
 	
@@ -121,8 +125,9 @@ var Mustache = (function(undefined) {
 		return text.replace(escapeCompiledRegex, '\\$1');
 	}
 	
+	var newlineCompiledRegex = /\r?\n/;
 	function is_newline(token) {
-		return token.match(/\r?\n/);
+		return token.match(newlineCompiledRegex);
 	}
 	
 	function is_function(a) {
@@ -135,6 +140,18 @@ var Mustache = (function(undefined) {
 
 	function is_array(a) {
 		return Object.prototype.toString.call(a) === '[object Array]';
+	}
+
+	// Checks whether a value is truthy or false or 0
+	function is_kinda_truthy(bool) {
+		return bool === false || bool === 0 || bool;
+	}
+
+	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g;
+	function escapeHTML(str) {
+		return str.replace(escapeRegex1,'&amp;')
+			.replace(escapeRegex2,'&lt;')
+			.replace(escapeRegex3,'&gt;');
 	}
 
 	var MustacheError = function(message, metrics) {
@@ -150,7 +167,7 @@ var Mustache = (function(undefined) {
 			}
 		}
 		
-		this.message = str + message;		
+		this.message = str + message;
 		if (metrics) {
 			this.line = metrics.line;
 			this.character = metrics.character;
@@ -208,7 +225,7 @@ var Mustache = (function(undefined) {
 		openTag = openTag || '{{';
 		closeTag = closeTag || '}}';
 
-		var tokenizer;		
+		var tokenizer;
 		if (openTag === '{{' && closeTag === '}}') {
 			tokenizer = default_tokenizer;
 		} else {
@@ -252,10 +269,9 @@ var Mustache = (function(undefined) {
 		return state;
 	}
 	
-	var pragma_directives = {
-		'IMPLICIT-ITERATOR': function(state, options) {
-			state.pragmas['IMPLICIT-ITERATOR'] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
-		}
+	var pragma_directives = {};
+	pragma_directives[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = function(state, options) {
+		state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
 	};
 		
 	function pragmas(state) {
@@ -306,36 +322,25 @@ var Mustache = (function(undefined) {
 	from the view object
 	*/
 	function find(name, context) {
-		// Checks whether a value is truthy or false or 0
-		function is_kinda_truthy(bool) {
-			return bool === false || bool === 0 || bool;
-		}
+		var value = context[name];
 		
-		var value;
-		
-		if (is_kinda_truthy(context[name])) {
-			value = context[name];
+		if (is_kinda_truthy(value)) {
+			if (is_function(value)) {
+				return value.apply(context);
+			} else {
+				return value;
+			}
 		}
-
-		if (is_function(value)) {
-			return value.apply(context);
-		}
-		
-		return value;
 	}
 	
 	function find_in_stack(name, context_stack) {
-		var value;
-				
-		value = find(name, context_stack[context_stack.length-1]);
+		var value = find(name, context_stack[context_stack.length-1]);
 		if (value!==undefined) { return value; }
 		
 		if (context_stack.length>1) {
 			value = find(name, context_stack[0]);
 			if (value!==undefined) { return value; }
 		}
-		
-		return undefined;
 	}
 	
 	function find_with_dot_notation(name, context) {
@@ -347,7 +352,7 @@ var Mustache = (function(undefined) {
 			value = find(name_components[i], value);
 			i++;
 		}
-	
+		
 		if (i!==n && !value) {
 			value = undefined;
 		}
@@ -358,16 +363,10 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		state.send_code_func(function(context, send_func) { send_func(token); });	
+		state.send_code_func(function(context, send_func) { send_func(token); });
 	}
-	
+
 	function interpolate(state, token, mark) {
-		function escapeHTML(str) {
-			return str.replace(/&/g,'&amp;')
-				.replace(/</g,'&lt;')
-				.replace(/>/g,'&gt;');
-		}
-		
 		var escape, prefix, postfix;
 		if (mark==='{') {
 			escape = prefix = postfix = true;
@@ -375,10 +374,7 @@ var Mustache = (function(undefined) {
 			escape = prefix = true;
 		}
 		
-		var variable = get_variable_name(state, token, prefix, postfix),
-			implicit_iterator = (state.pragmas['IMPLICIT-ITERATOR'] || {iterator: '.'}).iterator;
-		
-		state.send_code_func((function(variable, escape, implicit_iterator) { return function(context, send_func) {
+		state.send_code_func((function(variable, implicit_iterator, escape) { return function(context, send_func) {
 			var value;
 			
 			if ( variable === implicit_iterator ) { // special case for implicit iterator (usually '.')
@@ -387,7 +383,7 @@ var Mustache = (function(undefined) {
 			} else {
 				value = find_with_dot_notation(variable, context);
 			}
-
+			
 			if (value!==undefined) {
 				if (!escape) {
 					value = escapeHTML('' + value);
@@ -395,7 +391,7 @@ var Mustache = (function(undefined) {
 				
 				send_func('' + value);
 			}
-		};})(variable, escape, implicit_iterator));
+		};})(get_variable_name(state, token, prefix, postfix), (state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] || {iterator: '.'}).iterator, escape));
 	}
 	
 	function partial(state, token) {
@@ -414,7 +410,7 @@ var Mustache = (function(undefined) {
 			
 			var new_state = create_compiler_state(
 				template
-				, state.partials				
+				, state.partials
 			);
 			new_state.metrics.partial = variable;
 			// TODO: Determine if partials should inherit pragma state from parent
@@ -515,7 +511,7 @@ var Mustache = (function(undefined) {
 		'&': buffer_section,
 		'{': buffer_section,
 		'>': buffer_section,
-		'=': change_delimiter,		
+		'=': change_delimiter,
 		def: buffer_section,
 		text: buffer_section
 	};
@@ -601,7 +597,7 @@ var Mustache = (function(undefined) {
 		if (state.section.child_sections.length > 0) {
 			var child_section = state.section.child_sections[state.section.child_sections.length-1];
 			if (child_section === variable) {
-				state.section.child_sections.pop();			
+				state.section.child_sections.pop();
 				state.section.template_buffer.push(token);
 			} else {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
@@ -653,8 +649,7 @@ var Mustache = (function(undefined) {
 		Turns a template and view into HTML
 		*/
 		to_html: function(template, view, partials, send_func) {
-			var program = Mustache.compile(template, partials),
-				result = program(view, send_func);
+			var result = Mustache.compile(template, partials)(view, send_func);
 			
 			if (!send_func) {
 				return result;
@@ -662,8 +657,7 @@ var Mustache = (function(undefined) {
 		},
 		
 		format: function(template/*, args */) {
-			var program = Mustache.compile(template),
-				args = Array.prototype.slice.call(arguments),
+			var args = Array.prototype.slice.call(arguments),
 				view = {};
 			
 			args.shift();
@@ -671,7 +665,7 @@ var Mustache = (function(undefined) {
 				view['' + i] = args[i];
 			}
 			
-			return program(view);
+			return Mustache.compile(template)(view);
 		},
 
 		Error: MustacheError

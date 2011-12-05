@@ -553,7 +553,7 @@ test("'%' (Pragmas)", function() {
 	
 	equals(
 		Mustache.to_html(
-			'{{%IMPLICIT-ITERATOR iterator=rob}}{{=<% %>=}}<%#dataSet%><%rob%>:<%/dataSet%>',
+			'{{=<% %>=}}{{%IMPLICIT-ITERATOR iterator=rob}}<%#dataSet%><%rob%>:<%/dataSet%>',
 			{ dataSet: [ 'Object 1', 'Object 2', 'Object 3' ] },
 			{}
 		),
@@ -789,6 +789,12 @@ test("Regression Suite", function() {
 		)
 		, ' Hello '
 		, 'Change Delimiter + Partial');
+		
+	// matches Issue #141
+	equals(
+		Mustache.to_html("You said '{{{html}}}' today", { html: "I like {{mustache}}" })
+		, "You said 'I like {{mustache}}' today"
+		, 'No recursive parsing');
 });
 
 test("Mustache.format", function() {
