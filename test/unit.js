@@ -573,6 +573,27 @@ test("'%' (Pragmas)", function() {
 	);	
 });
 
+test("Context Stack", function() {
+	equals(
+		Mustache.to_html(
+			'{{#documents}}<tr>{{#field_values}}<td><a href="?view={{id}}">{{.}}</a></td>{{/field_values}}</tr>{{/documents}}'
+			, { documents: [
+				{ id: 'alpha', field_values: [ 'my', 'very', 'own', 'table' ] },
+				{ id: 'beta' },
+				{ id: 'delta', field_values: [ 'etc', 'etc', 'etc' ] }
+			] }
+		)
+		, '<tr><td><a href="?view=alpha">my</a></td><td><a href="?view=alpha">very</a></td><td><a href="?view=alpha">own</a></td><td><a href="?view=alpha">table</a></td></tr><tr></tr><tr><td><a href="?view=delta">etc</a></td><td><a href="?view=delta">etc</a></td><td><a href="?view=delta">etc</a></td></tr>'
+		, 'Correct stack-based interpolation.'
+	);
+	
+	equals(
+		Mustache.to_html('{{#a}}{{#b}}{{#c}}{{#d}}{{token}}{{/d}}{{/c}}{{/b}}{{/a}}', { a: { b: { c: true }, d: { token: 'Mustache' } } }),
+		'Mustache',
+		'Correct stack-based interpolation.'
+	);
+});
+
 test("Empty", function() {
 	// matches empty_template.html
 	equals(
