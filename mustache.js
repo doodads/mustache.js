@@ -650,6 +650,9 @@ var Mustache = (function(undefined) {
 		// if the first token being added to the section is a newline character,
 		// *and* the line is determined to be standalone, then the newline is ignored
 		if (state.section.template_buffer.length !== 0 || !is_newline(token) || !state.standalone.is_standalone) {
+			if (!is_whitespace(token)) {
+				state.standalone.is_standalone = false;
+			}
 			state.section.template_buffer.push(token);
 		}
 	}
