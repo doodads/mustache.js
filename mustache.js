@@ -213,8 +213,8 @@ var Mustache = (function(undefined) {
 		
 		if (!noReturn) {
 			return function(context, send_func) {
-				for (var i=0,n=state.code.length;i<n;++i) {
-					state.code[i](context, send_func);
+				for (var i=0;fn=state.code[i++];) {
+					fn(context, send_func);
 				}
 			};
 		}
