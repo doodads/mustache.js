@@ -9,7 +9,7 @@ test("Parser", function() {
 	// matches whitespace_partial.html
 	equals(
 		Mustache.to_html(
-			'<h1>{{  greeting  }}</h1>\n{{> partial }}\n<h3>{{ farewell }}</h3>',
+			'<h1>{{  greeting  }}</h1>\n{{#partial}}{{> partial }}{{/partial}}\n<h3>{{ farewell }}</h3>',
 			{
 				greeting: function() {
 					return "Welcome";
@@ -363,7 +363,7 @@ test("'>' (Partials)", function() {
 	// matches view_partial.html
 	equals(
 		Mustache.to_html(
-			'<h1>{{greeting}}</h1>\n{{>partial}}\n<h3>{{farewell}}</h3>',
+			'<h1>{{greeting}}</h1>\n{{#partial}}{{>partial}}{{/partial}}\n<h3>{{farewell}}</h3>',
 			{
 				greeting: function() {
 					return "Welcome";
@@ -392,9 +392,7 @@ test("'>' (Partials)", function() {
 		Mustache.to_html(
 			'{{>partial}}',
 			{ 
-				partial: {
-					array: ['1', '2', '3', '4']
-				}
+				array: ['1', '2', '3', '4']
 			},
 			{ partial: 'Here\'s a non-sense array of values\n{{#array}}\n  {{.}}\n{{/array}}' }
 		),
@@ -409,9 +407,7 @@ test("'>' (Partials)", function() {
 				title: function() {
 					return "Welcome";
 				},
-				partial: {
-					again: "Goodbye"
-				}
+				again: "Goodbye"
 			},
 			{partial:'Again, {{again}}!'}
 		),
