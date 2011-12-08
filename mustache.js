@@ -190,8 +190,6 @@ var Mustache = (function(undefined) {
 		
 		var n, c, token;
 		
-			console.log('pragmas are', state.pragmas);
-			
 		for (n = state.tokens.length;state.cursor<n && !state.terminated;++state.cursor) {
 			token = state.tokens[state.cursor];
 			if (token==='' || token===undefined) {
@@ -297,7 +295,7 @@ var Mustache = (function(undefined) {
 	pragma_directives[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = function(state, options) {
 		state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
 	};
-	pragma_directives['PRESPEC']: function() {
+	pragma_directives['PRESPEC'] = function() {
 		state.pragmas['PRESPEC'] = true;
 	};
 		
