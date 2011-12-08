@@ -52,7 +52,7 @@ test("Parser", function() {
 				{}
 			);
 		}, function(e) {
-			return e.message === '(1,1): Malformed change delimiter token "{{=tag1}}".';
+			return e instanceof Mustache.Error && e.message === '(1,1): Malformed change delimiter token "{{=tag1}}".';
 		},
 		'Malformed tags should be handled correctly.'
 	);
@@ -135,6 +135,54 @@ test("Basic Variables", function() {
 	);
 	
 });
+
+test("Dot Notation", function() {
+	equals(
+		Mustache.to_html(
+			'{{a.b.c}}',
+			{ a: { b: { c: 0 } } },
+			{}
+		),
+		'0'
+	);
+
+	equals(
+		Mustache.to_html(
+			'{{a.b.c}}',
+			{ a: { b: {} } },
+			{}
+		),
+		''
+	);
+
+	equals(
+		Mustache.to_html(
+			'{{a.b.c}}',
+			{ a: { b: 0 } },
+			{}
+		),
+		''
+	);
+
+	equals(
+		Mustache.to_html(
+			'{{a.b.c}}',
+			{ a: { b: function() { return { c: 5 } } } },
+			{}
+		),
+		'5'
+	);	
+
+	equals(
+		Mustache.to_html(
+			'{{#a.b.c}}{{d}}{{/a.b.c}}',
+			{ a: { b: function() { return { c: [ {d: 'a'}, {d: 'b'}, {d: 'c'} ] } } } },
+			{}
+		),
+		'abc'
+	);	
+});
+
 
 test("'{' or '&' (Unescaped Variable)", function() {
 	// matches unescaped.html
@@ -505,12 +553,27 @@ test("'%' (Pragmas)", function() {
 	
 	equals(
 		Mustache.to_html(
-			'{{%IMPLICIT-ITERATOR iterator=rob}}{{=<% %>=}}<%#dataSet%><%rob%>:<%/dataSet%>',
+			'{{=<% %>=}}{{%IMPLICIT-ITERATOR iterator=rob}}<%#dataSet%><%rob%>:<%/dataSet%>',
 			{ dataSet: [ 'Object 1', 'Object 2', 'Object 3' ] },
 			{}
 		),
 		"Object 1:Object 2:Object 3:",
 		'Change Delimiter and Pragma mixes'
+	);
+
+
+	raises(
+		function() {
+			Mustache.to_html(
+				'{{%IMPLICIT-ITERATOR iterator=rob}}{{%I-HAVE-THE-GREATEST-MUSTACHE}}',
+				{},
+				{}
+			);
+		},
+		function(e) {
+			return e.message === 'This implementation of mustache does not implement the "I-HAVE-THE-GREATEST-MUSTACHE" pragma.';
+		},
+		'Multiple Pragmas'
 	);	
 });
 
@@ -716,6 +779,41 @@ test("Regression Suite", function() {
 		)
 		, 'foobar'
 		, 'Nested Sections with the same name'
+	);
+	
+	equals(
+		Mustache.to_html(
+			'{{=~~ ~~=}} ~~>staticInfoPanel~~ ~~={{ }}=~~'
+			, {}
+			, { staticInfoPanel: 'Hello' }
+		)
+		, ' Hello '
+		, 'Change Delimiter + Partial');
+		
+	// matches Issue #141
+	equals(
+		Mustache.to_html("You said '{{{html}}}' today", { html: "I like {{mustache}}" })
+		, "You said 'I like {{mustache}}' today"
+		, 'No recursive parsing');
+});
+
+test("Mustache.format", function() {
+	equals(
+		Mustache.format('{{0}} {{1}}, {{2}} {{3}}.', 'And', 'it', 'was', 'good'),
+		'And it, was good.',
+		'Simple Version'
+	);
+	
+	equals(
+		Mustache.format('{{0}}', function() { return 'Groucho Marx'; } ),
+		'Groucho Marx',
+		'With Functions'
+	);
+	
+	equals(
+		Mustache.format('{{0}}'),
+		'',
+		'Insufficient parameters (no failure)'
 	);
 });
 

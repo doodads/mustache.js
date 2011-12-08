@@ -1,6 +1,22 @@
 # mustache.js Changes
 
-## 0.3.1 (??-??-????)
+## 0.5.2-vcs
+
+* Fixed a scoping bug (thanks gjslick)
+* Added Mustache.format function (similar to String.format from C#)
+
+## 0.5.1-vcs
+
+* Added Dot Notation Support
+
+## 0.5.0-vcs
+
+* Added Compiled Template support
+* Correct Set Delimiter implementation
+* Implements & unescaping character
+* Multiline Comments
+* Syntactically Important Whitespace (Issues 25, 41, 48, and 67)
+* QUnit unit tests
 
 ## 0.3.0 (21-07-2010)
 
