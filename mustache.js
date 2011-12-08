@@ -440,7 +440,7 @@ var Mustache = (function(undefined) {
 			template, program;
 		
 		if (!state.partials[variable]) {
-			throw new MustacheError('Unknown partial "' + variable + '".', state.metrics);
+			state.partials[variable] = noop;
 		}
 		
 		if (!is_function(state.partials[variable])) {
@@ -457,7 +457,7 @@ var Mustache = (function(undefined) {
 			state.partials[variable] = compile(new_state);
 		}
 		
-		state.send_code_func(function(context, send_func) { state.partials[variable](context, send_func); });
+		state.send_code_func(state.partials[variable](context, send_func));
 	}
 	
 	function section(state) {
