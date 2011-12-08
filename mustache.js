@@ -151,11 +151,12 @@ var Mustache = (function(undefined) {
 		return bool === false || bool === 0 || bool;
 	}
 
-	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g;
+	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g, escapeRegex4 = /"/g;
 	function escapeHTML(str) {
 		return str.replace(escapeRegex1,'&amp;')
 			.replace(escapeRegex2,'&lt;')
-			.replace(escapeRegex3,'&gt;');
+			.replace(escapeRegex3,'&gt;')
+			.replace(escapeRegex4,'&quot;');
 	}
 
 	var MustacheError = function(message, metrics) {
