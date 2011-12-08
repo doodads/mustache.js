@@ -226,6 +226,10 @@ var Mustache = (function(undefined) {
 			}
 		}
 		
+		if (state.standalone.tags === 0) {
+			state.standalone.is_standalone = false;
+		}
+		
 		if (state.parser === scan_section_parser && !state.terminated) {
 			throw new MustacheError('Closing section tag "' + state.section.variable + '" expected.', state.metrics);
 		}
@@ -425,7 +429,7 @@ var Mustache = (function(undefined) {
 					send_func(token);
 				}
 			});
-		} else if (!state.standalone.is_standalone || !is_newline(token)) {
+		} else if (!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1) {
 			// all other cases switch over to non-standalone mode
 			state.standalone.is_standalone = false;
 			state.send_code_func(function(context, send_func) { send_func(token); });
@@ -669,6 +673,24 @@ var Mustache = (function(undefined) {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
 			}
 		} else if (state.section.variable===variable) {
+			// look-ahead to see if another token on this line flips the standalone flag
+			var n, c, token;
+			for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
+				token = state.tokens[c];
+				if (token==='' || token===undefined) {
+					continue;
+				}
+				
+				if (is_newline(token)) {
+					break;
+				}
+				
+				if (!is_whitespace(token)) {
+					state.standalone.is_standalone = false;
+					break;
+				}
+			}
+			
 			section(state);
 			delete state.section;
 			state.parser = default_parser;
