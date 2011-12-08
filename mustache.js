@@ -568,7 +568,7 @@ var Mustache = (function(undefined) {
 		'>': buffer_section,
 		'=': change_delimiter,
 		def: buffer_section,
-		text: buffer_section
+		text: buffer_section_text
 	};
 		
 	function get_variable_name(state, token, prefix, postfix) {
@@ -629,6 +629,7 @@ var Mustache = (function(undefined) {
 			state.section = {
 				variable: variable
 				, template_buffer: []
+				, lookahead_token: undefined
 				, inverted: inverted
 				, child_sections: []
 				, metrics: {
@@ -645,14 +646,30 @@ var Mustache = (function(undefined) {
 	}
 	
 	function buffer_section(state, token) {
-		// if the first token being added to the section is a newline character,
-		// *and* the line is determined to be standalone, then the newline is ignored
-		if (state.section.template_buffer.length !== 0 || !is_newline(token) || !state.standalone.is_standalone) {
-			if (!is_whitespace(token)) {
-				state.standalone.is_standalone = false;
-			}
-			state.section.template_buffer.push(token);
+		if (state.section.lookahead_token) {
+			state.section.template_buffer.push(state.section.lookahead_token);
+			state.section.lookahead_token = undefined;
 		}
+		state.section.template_buffer.push(token);
+	}
+	
+	function buffer_section_text(state, token) {
+		if (state.section.template_buffer.length === 0 && is_newline(token) && state.standalone.is_standalone) {
+			// if the first token being added to the section is a newline character,
+			// and the line is determined to be standalone, then the newline is ignored
+			token = '';
+		} else if (
+			(state.metrics.character!==1 || !is_whitespace(token)) && (
+			!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1))
+		{
+			// all other cases switch over to non-standalone mode
+			state.standalone.is_standalone = false;
+		}
+
+		if (state.section.lookahead_token) {
+			state.section.template_buffer.push(state.section.lookahead_token);
+		}
+		state.section.lookahead_token = token;
 	}
 	
 	function end_section(state, token) {
@@ -668,21 +685,30 @@ var Mustache = (function(undefined) {
 			}
 		} else if (state.section.variable===variable) {
 			// look-ahead to see if another token on this line flips the standalone flag
-			var n, c, token;
-			for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
-				token = state.tokens[c];
-				if (token==='' || token===undefined) {
-					continue;
+			// the very last token to be inserted into the section is conditional on the line being standalone or not
+			if (state.section.lookahead_token && is_whitespace(state.section.lookahead_token) && !is_newline(state.section.lookahead_token) && state.standalone.is_standalone) {
+				var n, c, token;
+				for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
+					token = state.tokens[c];
+					if (token==='' || token===undefined) {
+						continue;
+					}
+					
+					if (is_newline(token)) {
+						break;
+					}
+					
+					if (!is_whitespace(token)) {
+						state.standalone.is_standalone = false;
+						break;
+					}
 				}
 				
-				if (is_newline(token)) {
-					break;
+				if (!state.standalone.is_standalone) {
+					state.section.template_buffer.push(state.section.lookahead_token);
 				}
-				
-				if (!is_whitespace(token)) {
-					state.standalone.is_standalone = false;
-					break;
-				}
+			} else {
+				state.section.template_buffer.push(state.section.lookahead_token);
 			}
 			
 			section(state);
