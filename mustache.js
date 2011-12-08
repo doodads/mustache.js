@@ -199,6 +199,11 @@ var Mustache = (function(undefined) {
 			if (state.standalone.tags > 1 || state.pragmas['PRESPEC']) {
 				state.standalone.is_standalone = false;
 			}
+			
+			if (state.metrics.character === 1 && state.leadingWhitespace !== '') {
+				var leadingWhitespace = state.leadingWhitespace;
+				state.send_code_func(function(context, send_func) { send_func(leadingWhitespace); });
+			}
 		
 			if (token.indexOf(state.openTag)===0) {
 				c = token.charAt(state.openTag.length);
@@ -275,6 +280,7 @@ var Mustache = (function(undefined) {
 			, closeTag: closeTag
 			, parser: default_parser
 			, standalone: { is_standalone: true, tags: 0 } /* must be object so that closure scope can be established */
+			, leadingWhitespace: ''
 			, pragmas: {}
 			, code: code
 			, send_code_func: function(f) {
@@ -392,6 +398,7 @@ var Mustache = (function(undefined) {
 			// if at the start of a line and the token is whitespace
 			// hold on to the token for later reference
 			var standalone = state.standalone;
+			standalone.token = token;
 			state.send_code_func(function(context, send_func) {
 				if (!standalone.is_standalone) {
 					send_func(token);
@@ -443,9 +450,8 @@ var Mustache = (function(undefined) {
 			state.partials[variable] = noop;
 		}
 		
+		// if the partial has not been compiled yet, do so now
 		if (!is_function(state.partials[variable])) {
-			// if the partial has not been compiled yet, do so now
-			
 			template = state.partials[variable]; // remember what the partial was
 			state.partials[variable] = noop; // avoid infinite recursion
 			
@@ -453,11 +459,16 @@ var Mustache = (function(undefined) {
 				template
 				, state.partials
 			);
+			if (state.standalone.is_standalone) {
+				new_state.leadingWhitespace += state.leadingWhitespace + (state.standalone.token || '');
+			} else {
+				new_state.leadingWhitespace += state.leadingWhitespace;
+			}
 			new_state.metrics.partial = variable;
 			state.partials[variable] = compile(new_state);
 		}
 		
-		state.send_code_func(state.partials[variable](context, send_func));
+		state.send_code_func(function(context, send_func) { state.partials[variable](context, send_func); });
 	}
 	
 	function section(state) {
