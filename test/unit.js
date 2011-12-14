@@ -1016,4 +1016,9 @@ test("Spec", function() {
 		Mustache.to_html(' \n '),
 		' \n ',
 		'Standalone flag is not too eager');
+		
+	equals(
+		Mustache.to_html(' \n\n '),
+		' \n\n ',
+		'Standalone flag is not too eager');
 });

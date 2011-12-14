@@ -125,7 +125,7 @@ var Mustache = (function(undefined) {
 		return text.replace(escapeCompiledRegex, '\\$1');
 	}
 	
-	var newlineCompiledRegex = /\r?\n/;
+	var newlineCompiledRegex = /^\r?\n$/;
 	function is_newline(token) {
 		return token.match(newlineCompiledRegex);
 	}
@@ -413,7 +413,10 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		if (state.metrics.character===1 && is_whitespace(token)) {
+		if (state.metrics.character===1 && is_newline(token)) {
+			// the line is empty save the new line, just output it
+			state.send_code_func(function(context, send_func) { send_func(token); });
+		} else if (state.metrics.character===1 && is_whitespace(token)) {
 			// if at the start of a line and the token is whitespace
 			// hold on to the token for later reference
 			var standalone = state.standalone;
@@ -641,6 +644,10 @@ var Mustache = (function(undefined) {
 			};
 		} else {
 			state.section.child_sections.push(variable);
+			if (state.section.lookahead_token || state.section.lookahead_token === '') {
+				state.section.template_buffer.push(state.section.lookahead_token);
+				state.section.lookahead_token = undefined;
+			}
 			state.section.template_buffer.push(token);
 		}
 	}
@@ -666,7 +673,7 @@ var Mustache = (function(undefined) {
 			state.standalone.is_standalone = false;
 		}
 
-		if (state.section.lookahead_token) {
+		if (state.section.lookahead_token || state.section.lookahead_token === '') {
 			state.section.template_buffer.push(state.section.lookahead_token);
 		}
 		state.section.lookahead_token = token;
@@ -679,6 +686,10 @@ var Mustache = (function(undefined) {
 			var child_section = state.section.child_sections[state.section.child_sections.length-1];
 			if (child_section === variable) {
 				state.section.child_sections.pop();
+				if (state.section.lookahead_token || state.section.lookahead_token==='') {
+					state.section.template_buffer.push(state.section.lookahead_token);
+					state.section.lookahead_token = undefined;
+				}
 				state.section.template_buffer.push(token);
 			} else {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
@@ -686,7 +697,11 @@ var Mustache = (function(undefined) {
 		} else if (state.section.variable===variable) {
 			// look-ahead to see if another token on this line flips the standalone flag
 			// the very last token to be inserted into the section is conditional on the line being standalone or not
-			if (state.section.lookahead_token && is_whitespace(state.section.lookahead_token) && !is_newline(state.section.lookahead_token) && state.standalone.is_standalone) {
+			if (state.section.lookahead_token && 
+				is_whitespace(state.section.lookahead_token) && 
+				!is_newline(state.section.lookahead_token) && 
+				state.standalone.is_standalone)
+			{
 				var n, c, token;
 				for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
 					token = state.tokens[c];
@@ -706,9 +721,11 @@ var Mustache = (function(undefined) {
 				
 				if (!state.standalone.is_standalone) {
 					state.section.template_buffer.push(state.section.lookahead_token);
+					state.section.lookahead_token = undefined;
 				}
 			} else {
 				state.section.template_buffer.push(state.section.lookahead_token);
+				state.section.lookahead_token = undefined;
 			}
 			
 			section(state);
