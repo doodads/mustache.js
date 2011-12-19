@@ -387,7 +387,7 @@ var Mustache = (function(undefined) {
 			escape = prefix = true;
 		}
 		
-		// interpolation tags are always standalone
+		// interpolation tags are always non-standalone
 		state.standalone.is_standalone = false;
 		
 		state.send_code_func((function(variable, escape) { return function(context, send_func) {
@@ -426,10 +426,9 @@ var Mustache = (function(undefined) {
 				template
 				, state.partials
 			);
+			new_state.leadingWhitespace += state.leadingWhitespace;
 			if (state.standalone.is_standalone) {
-				new_state.leadingWhitespace += state.leadingWhitespace + (state.standalone.token || '');
-			} else {
-				new_state.leadingWhitespace += state.leadingWhitespace;
+				new_state.leadingWhitespace += state.standalone.token || '';
 			}
 			new_state.metrics.partial = variable;
 			state.partials[variable] = compile(new_state);
