@@ -795,6 +795,12 @@ test("Regression Suite", function() {
 		Mustache.to_html("You said '{{{html}}}' today", { html: "I like {{mustache}}" })
 		, "You said 'I like {{mustache}}' today"
 		, 'No recursive parsing');
+		
+	// matches Issue #148
+	equals(
+		Mustache.to_html("{{#items}}{{name}}{{#items}}{{.}}{{/items}}{{/items}}", {items: [{name: 'name', items: [1,2,3,4]}]})
+		, "name1234"
+		, "Nested Lists with the same name");
 });
 
 test("Mustache.format", function() {
