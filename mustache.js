@@ -292,11 +292,7 @@ var Mustache = (function(undefined) {
 	
 	/* BEGIN Run Time Helpers */
 	
-	/*
-	find `name` in current `context`. That is find me a value
-	from the view object
-	*/
-	function find(name, context) {
+	function coerce(name, context) {
 		var value = context[name];
 		
 		if (is_kinda_truthy(value)) {
@@ -313,7 +309,7 @@ var Mustache = (function(undefined) {
 			n = context_stack.length, i = n, j;
 		
 		do {
-			value = find(name, context_stack[--i]);
+			value = coerce(name, context_stack[--i]);
 			if (value!==undefined) { 
 				if (i > 0 && (is_object(value) || is_array(value))) {
 					// if the value has the potential of creating a stack-entry, 
@@ -339,13 +335,21 @@ var Mustache = (function(undefined) {
 		return value;
 	}
 	
-	function find_with_dot_notation(name, context) {
+	/*
+	find `name` in current `context`. That is find me a value
+	from the view object
+	*/
+	function find(name, context) {
+		if (name === '.') {
+			return coerce('.', { '.' : context[context.length-1] });
+		}
+		
 		var name_components = name.split('.'),
 			i = 1, n = name_components.length,
 			value = find_in_stack(name_components[0], context);
 			
 		while (value && i<n) {
-			value = find(name_components[i], value);
+			value = coerce(name_components[i], value);
 			i++;
 		}
 		
@@ -391,13 +395,7 @@ var Mustache = (function(undefined) {
 		state.standalone.is_standalone = false;
 		
 		state.send_code_func((function(variable, escape) { return function(context, send_func) {
-			var value;
-			
-			if ( variable === '.' ) { // special case for implicit iterator
-				value = find(variable, { '.' : context[context.length-1] });
-			} else {
-				value = find_with_dot_notation(variable, context);
-			}
+			var value = find(variable, context);
 			
 			if (value!==undefined) {
 				if (!escape) {
@@ -448,14 +446,14 @@ var Mustache = (function(undefined) {
 		
 		if (s.inverted) {
 			state.send_code_func((function(program, variable){ return function(context, send_func) {
-				var value = find_with_dot_notation(variable, context);
+				var value = find(variable, context);
 				if (!value || is_array(value) && value.length === 0) { // false or empty list, render it
 					program(context, send_func);
 				}
 			};})(program, s.variable));
 		} else {
 			state.send_code_func((function(program, variable, template, partials){ return function(context, send_func) {
-				var value = find_with_dot_notation(variable, context);
+				var value = find(variable, context);
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
 					for (var i=0, n=value.length; i<n; ++i) {
