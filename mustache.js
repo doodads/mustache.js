@@ -534,8 +534,11 @@ var Mustache = (function(undefined) {
 		return fragment;
 	}
 	
+	var changeDelimiterRegex = /=\s*(\S*?)\s*(\S*?)\s*=/;
 	function change_delimiter(state, token) {
-		var matches = token.match(new RegExp(escape_regex(state.openTag) + '=\\s*(\\S*?)\\s*(\\S*?)\\s*=' + escape_regex(state.closeTag)));
+		var matches = token
+			.substring(state.openTag.length, token.length - state.closeTag.length)
+			.match(changeDelimiterRegex);
 
 		if ((matches || []).length!==3) {
 			throw new MustacheError('Malformed change delimiter token "' + token + '".', state.metrics);
