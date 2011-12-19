@@ -104,10 +104,6 @@ var Mustache = (function(undefined) {
 		}
 	})();
 
-	/* BEGIN Constants */
-	var IMPLICIT_ITERATOR_PRAGMA_TOKEN = 'IMPLICIT-ITERATOR';
-	/* END Constants */
-	
 	/* BEGIN Helpers */
 	function noop() {}
 	
@@ -197,7 +193,7 @@ var Mustache = (function(undefined) {
 				continue;
 			}
 			
-			if (state.standalone.tags > 1 || state.pragmas['PRESPEC']) {
+			if (state.standalone.tags > 1) {
 				state.standalone.is_standalone = false;
 			}
 			
@@ -279,67 +275,17 @@ var Mustache = (function(undefined) {
 			, parser: default_parser
 			, standalone: { is_standalone: true, tags: 0 } /* must be object so that closure scope can be established */
 			, leadingWhitespace: ''
-			, pragmas: {}
 			, code: code
 			, send_code_func: function(f) {
 				code.push(f);
 			}
 		};
 		
-		pragmas(state); // use pragmas to control parsing behaviour
-		
 		// tokenize and initialize a cursor
 		state.tokens = splitFunc.call(state.template, tokenizer);
 		state.cursor = 0;
 		
 		return state;
-	}
-	
-	var pragma_directives = {};
-	pragma_directives[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = function(state, options) {
-		state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
-	};
-	pragma_directives['PRESPEC'] = function() {
-		state.pragmas['PRESPEC'] = true;
-	};
-		
-	function pragmas(state) {
-		/* includes tag */
-		function includes(needle, haystack) {
-			return haystack.indexOf('{{' + needle) !== -1;
-		}
-		
-		// no pragmas, easy escape
-		if(!includes("%", state.template)) {
-			return state.template;
-		}
-
-		state.template = state.template.replace(/{{%([\w-]+)(\s*)(.*?(?=}}))}}/g, function(match, pragma, space, suffix) {
-			var options = undefined,
-				optionPairs, scratch,
-				i, n;
-			
-			if (suffix.length>0) {
-				optionPairs = suffix.split(',');
-				
-				options = {};
-				for (i=0, n=optionPairs.length; i<n; ++i) {
-					scratch = optionPairs[i].split('=');
-					if (scratch.length !== 2) {
-						throw new MustacheError('Malformed pragma option "' + optionPairs[i] + '".');
-					}
-					options[scratch[0]] = scratch[1];
-				}
-			}
-			
-			if (is_function(pragma_directives[pragma])) {
-				pragma_directives[pragma](state, options);
-			} else {
-				throw new MustacheError('This implementation of mustache does not implement the "' + pragma + '" pragma.', undefined);
-			}
-
-			return ''; // blank out all pragmas
-		});
 	}
 	
 	/* END Compiler */
@@ -444,12 +390,11 @@ var Mustache = (function(undefined) {
 		// interpolation tags are always standalone
 		state.standalone.is_standalone = false;
 		
-		state.send_code_func((function(variable, implicit_iterator, escape) { return function(context, send_func) {
+		state.send_code_func((function(variable, escape) { return function(context, send_func) {
 			var value;
 			
-			if ( variable === implicit_iterator ) { // special case for implicit iterator (usually '.')
-				value = {}; value[implicit_iterator] = context[context.length-1];
-				value = find(variable, value);
+			if ( variable === '.' ) { // special case for implicit iterator
+				value = find(variable, { '.' : context[context.length-1] });
 			} else {
 				value = find_with_dot_notation(variable, context);
 			}
@@ -461,7 +406,7 @@ var Mustache = (function(undefined) {
 				
 				send_func('' + value);
 			}
-		};})(get_variable_name(state, token, prefix, postfix), (state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] || {iterator: '.'}).iterator, escape));
+		};})(get_variable_name(state, token, prefix, postfix), escape));
 	}
 	
 	function partial(state, token) {
@@ -500,7 +445,6 @@ var Mustache = (function(undefined) {
 		
 		new_state.standalone.is_standalone = s.standalone.is_standalone;
 		new_state.metrics = s.metrics;
-		new_state.pragmas = state.pragmas;
 		program = compile(new_state);
 		
 		if (s.inverted) {
@@ -613,7 +557,6 @@ var Mustache = (function(undefined) {
 		new_state.metrics.partial = state.metrics.partial;
 		new_state.section = state.section;
 		new_state.standalone = state.standalone;
-		new_state.pragmas = state.pragmas;
 		if (new_state.section) {
 			new_state.section.template_buffer.push(token);
 		}
