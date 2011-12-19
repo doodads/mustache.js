@@ -180,11 +180,11 @@ var Mustache = (function(undefined) {
 
 	/* BEGIN Compiler */
 		
-	function compile(state, noReturn) {
-		function make_standalone() {
-			return { is_standalone: true, tags: 0 };
-		}
+	function make_standalone() {
+		return { is_standalone: true, tags: 0 };
+	}
 		
+	function compile(state, noReturn) {
 		var n, c, token;
 		
 		for (n = state.tokens.length;state.cursor<n && !state.terminated;++state.cursor) {
@@ -273,7 +273,7 @@ var Mustache = (function(undefined) {
 			, openTag: openTag
 			, closeTag: closeTag
 			, parser: default_parser
-			, standalone: { is_standalone: true, tags: 0 } /* must be object so that closure scope can be established */
+			, standalone: make_standalone()
 			, leadingWhitespace: ''
 			, code: code
 			, send_code_func: function(f) {
