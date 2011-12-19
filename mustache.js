@@ -771,15 +771,18 @@ var Mustache = (function(undefined) {
 		},
 		
 		/*
-		Turns a template and view into HTML
+		Renders a template given a specific set of data
 		*/
-		to_html: function(template, view, partials, send_func) {
+		render: function(template, view, partials, send_func) {
 			var result = Mustache.compile(template, partials)(view, send_func);
 			
 			if (!send_func) {
 				return result;
 			}
 		},
+		
+		/* alias to render for backwards compatibility */
+		to_html: function() { return Mustache.render.apply(null, arguments); },
 		
 		format: function(template/*, args */) {
 			var args = Array.prototype.slice.call(arguments),
