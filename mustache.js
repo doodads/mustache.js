@@ -566,6 +566,19 @@ var Mustache = (function(undefined) {
 		compile(new_state, true);
 	}
 	
+	function push_section_token(state, token, unconditional) {
+		if (state.section.lookahead_token || state.section.lookahead_token === '') {
+			state.section.template_buffer.push(state.section.lookahead_token);
+			state.section.lookahead_token = undefined;
+		}
+		
+		if (unconditional) {
+			state.section.template_buffer.push(token);
+		} else {
+			state.section.lookahead_token = token;
+		}
+	}
+	
 	function begin_section(state, token, mark) {
 		var inverted = mark === '^', 
 			variable = get_variable_name(state, token, true);
@@ -587,20 +600,12 @@ var Mustache = (function(undefined) {
 			};
 		} else {
 			state.section.child_sections.push(variable);
-			if (state.section.lookahead_token || state.section.lookahead_token === '') {
-				state.section.template_buffer.push(state.section.lookahead_token);
-				state.section.lookahead_token = undefined;
-			}
-			state.section.template_buffer.push(token);
+			push_section_token(state, token, true);
 		}
 	}
 	
 	function buffer_section(state, token) {
-		if (state.section.lookahead_token) {
-			state.section.template_buffer.push(state.section.lookahead_token);
-			state.section.lookahead_token = undefined;
-		}
-		state.section.template_buffer.push(token);
+		push_section_token(state, token, true);
 	}
 	
 	function buffer_section_text(state, token) {
@@ -616,10 +621,7 @@ var Mustache = (function(undefined) {
 			state.standalone.is_standalone = false;
 		}
 
-		if (state.section.lookahead_token || state.section.lookahead_token === '') {
-			state.section.template_buffer.push(state.section.lookahead_token);
-		}
-		state.section.lookahead_token = token;
+		push_section_token(state, token, false);
 	}
 	
 	function end_section(state, token) {
@@ -629,11 +631,7 @@ var Mustache = (function(undefined) {
 			var child_section = state.section.child_sections[state.section.child_sections.length-1];
 			if (child_section === variable) {
 				state.section.child_sections.pop();
-				if (state.section.lookahead_token || state.section.lookahead_token==='') {
-					state.section.template_buffer.push(state.section.lookahead_token);
-					state.section.lookahead_token = undefined;
-				}
-				state.section.template_buffer.push(token);
+				push_section_token(state, token, true);
 			} else {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
 			}
@@ -663,12 +661,10 @@ var Mustache = (function(undefined) {
 				}
 				
 				if (!state.standalone.is_standalone) {
-					state.section.template_buffer.push(state.section.lookahead_token);
-					state.section.lookahead_token = undefined;
+					push_section_token(state, '', true);
 				}
 			} else {
-				state.section.template_buffer.push(state.section.lookahead_token);
-				state.section.lookahead_token = undefined;
+				push_section_token(state, '', true);
 			}
 			
 			section(state);
