@@ -30,7 +30,7 @@ test("Parser", function() {
 			},
 			{partial:'Hello {{ name}}\nYou have just won ${{value }}!\n{{# in_ca  }}\nWell, ${{ taxed_value }}, after taxes.\n{{/  in_ca }}\n'}
 		),
-		'<h1>Welcome</h1>\nHello Chris\nYou have just won $10000!\n\nWell, $6000, after taxes.\n\n\n<h3>Fair enough, right?</h3>',
+		'<h1>Welcome</h1>\nHello Chris\nYou have just won $10000!\nWell, $6000, after taxes.\n\n<h3>Fair enough, right?</h3>',
 		'Whitespace in Tag names'
 	);
 	
@@ -233,7 +233,7 @@ test("'#' (Sections)", function() {
 			{ numbers: ['1', '2', '3', '4'] },
 			{ partial: '{{.}}' }
 		),
-		'Here is some stuff!\n\n1\n\n2\n\n3\n\n4\n',
+		'Here is some stuff!\n1234',
 		'Array of Partials (Implicit)'
 	);
 	
@@ -244,7 +244,7 @@ test("'#' (Sections)", function() {
 			{ numbers: [{i: '1'}, {i: '2'}, {i: '3'}, {i: '4'}] },
 			{ partial: '{{i}}' }
 		),
-		'Here is some stuff!\n\n1\n\n2\n\n3\n\n4\n',
+		'Here is some stuff!\n1234',
 		'Array of Partials (Explicit)'
 	);
 	
@@ -291,7 +291,7 @@ test("'#' (Sections)", function() {
 			},
 			{}
 		),
-		'name\ndesc\n\n\n  t1\n  0\n\n  t2\n  1\n\n'
+		'name\ndesc\n\n  t1\n  0\n  t2\n  1\n'
 	);
 	
 	// matches reuse_of_enumerables.html
@@ -306,7 +306,7 @@ test("'#' (Sections)", function() {
 			},
 			{}
 		),
-		'\n  t1\n  0\n\n  t2\n  1\n\n\n  t1\n  0\n\n  t2\n  1\n\n',
+		'  t1\n  0\n  t2\n  1\n  t1\n  0\n  t2\n  1\n',
 		'Lazy match of Section and Inverted Section'
 	);
 	
@@ -323,7 +323,7 @@ test("'#' (Sections)", function() {
 			},
 			{}
 		),
-		'\n  <h1>this is an object</h1>\n  <p>one of its attributes is a list</p>\n  <ul>\n    \n    <li>listitem1</li>\n    \n    <li>listitem2</li>\n    \n  </ul>\n\n',
+		'  <h1>this is an object</h1>\n  <p>one of its attributes is a list</p>\n  <ul>\n    <li>listitem1</li>\n    <li>listitem2</li>\n  </ul>\n',
 		'Lazy match of Section and Inverted Section'
 	);
 	
@@ -340,7 +340,7 @@ test("'#' (Sections)", function() {
 			},
 			{}
 		),
-		'\n  \n    1\n  \n\n  \n    2\n  \n\n  \n    3\n  \n',
+		'  \n    1\n  \n    2\n  \n    3\n',
 		'Context Nesting'
 	);
 });
@@ -384,7 +384,7 @@ test("'>' (Partials)", function() {
 			},
 			{partial: 'Hello {{name}}\nYou have just won ${{value}}!\n{{#in_ca}}\nWell, ${{ taxed_value }}, after taxes.\n{{/in_ca}}\n'}
 		),
-		'<h1>Welcome</h1>\nHello Chris\nYou have just won $10000!\n\nWell, $6000, after taxes.\n\n\n<h3>Fair enough, right?</h3>'
+		'<h1>Welcome</h1>\nHello Chris\nYou have just won $10000!\nWell, $6000, after taxes.\n\n<h3>Fair enough, right?</h3>'
 	);
 	
 	// matches array_partial.html
@@ -396,7 +396,7 @@ test("'>' (Partials)", function() {
 			},
 			{ partial: 'Here\'s a non-sense array of values\n{{#array}}\n  {{.}}\n{{/array}}' }
 		),
-		'Here\'s a non-sense array of values\n\n  1\n\n  2\n\n  3\n\n  4\n'
+		'Here\'s a non-sense array of values\n  1\n  2\n  3\n  4\n'
 	);
 	
 	// matches template_partial.html
@@ -431,20 +431,7 @@ test("'>' (Partials)", function() {
 			},
 			{partial:'{{name}}\n{{#children}}\n{{>partial}}\n{{/children}}'}
 		),
-		'1\n\n1.1\n\n1.1.1\n\n\n'
-	);
-	
-	raises(
-		function() {
-			Mustache.to_html(
-				'{{>partial}}',
-				{},
-				{partal: ''}
-			);
-		}, function(e) {
-			return e.message === '(1,1): Unknown partial "partial".';
-		},
-		'Missing partials should be handled correctly.'
+		'1\n1.1\n1.1.1\n'
 	);
 });
 
@@ -461,7 +448,7 @@ test("'=' (Set Delimiter)", function() {
 			},
 			{}
 		),
-		'*\nIt worked the first time.\n* And it worked the second time.\n\n* Then, surprisingly, it worked the third time.\n\n* Fourth time also fine!.',
+		'*\nIt worked the first time.\n* And it worked the second time.\n* Then, surprisingly, it worked the third time.\n* Fourth time also fine!.',
 		'Simple Set Delimiter'
 	);
 		
@@ -548,10 +535,9 @@ test("Empty", function() {
 			'hey {{foo}}\n{{>partial}}\n',
 			{
 				foo: 1
-			},
-			{partial: 'yo'}
+			}
 		),
-		'hey 1\nyo\n',
+		'hey 1\n',
 		'Empty Partial'
 	);
 });
@@ -571,7 +557,7 @@ test("Demo", function() {
 			},
 			{}
 		),
-		'Hello Chris\nYou have just won $10000!\n\nWell, $6000, after taxes.\n',
+		'Hello Chris\nYou have just won $10000!\nWell, $6000, after taxes.\n',
 		'A simple template'
 	);
 	
@@ -615,7 +601,7 @@ test("Demo", function() {
 		}
 	};
 	
-	var expected_result = '<h1>Colors</h1>\n\n  <ul>\n  \n  \n      <li><strong>red</strong></li>\n  \n  \n      <li><a href=\"#Red\">red</a></li>\n  \n  \n  \n  \n      <li><a href=\"#Green\">green</a></li>\n  \n  \n  \n  \n      <li><a href=\"#Blue\">blue</a></li>\n  \n  \n  </ul>\n\n';
+	var expected_result = '<h1>Colors</h1>\n  <ul>\n  \n      <li><strong>red</strong></li>\n      <li><a href=\"#Red\">red</a></li>\n        <li><a href=\"#Green\">green</a></li>\n        <li><a href=\"#Blue\">blue</a></li>\n  </ul>\n';
 	
 	equals(
 		Mustache.to_html(
@@ -629,19 +615,6 @@ test("Demo", function() {
 });
 
 test("Error Handling", function() {
-	raises(
-		function() {
-			Mustache.to_html(
-				'this is a partial\nyes it is. {{>partial}}',
-				{},
-				{partal: ''}
-			);
-		}, function(e) {
-			return e.line === 2 && e.character === 12;
-		},
-		'Missing partial line and character correctness.'
-	);
-	
 	raises(
 		function() {
 			Mustache.to_html(
@@ -701,7 +674,7 @@ test("Regression Suite", function() {
 			{ enumerate: [ { text: 'A' }, { text: 'B' } ] },
 			{ partial: '{{=[[ ]]=}}\n{{text}}\n[[={{ }}=]]' }
 		),
-		'\n\n{{text}}\n\n\n\n{{text}}\n\n',
+		'{{text}}\n{{text}}\n',
 		'Issue 44'
 	);
 	
