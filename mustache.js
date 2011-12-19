@@ -363,10 +363,7 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		if (state.metrics.character===1 && is_newline(token)) {
-			// the line is empty save the new line, just output it
-			state.send_code_func(function(context, send_func) { send_func(token); });
-		} else if (state.metrics.character===1 && is_whitespace(token)) {
+		if (state.metrics.character===1 && is_whitespace(token) && !is_newline(token)) {
 			// if at the start of a line and the token is whitespace
 			// hold on to the token for later reference
 			var standalone = state.standalone;
