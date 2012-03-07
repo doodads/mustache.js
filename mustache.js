@@ -199,7 +199,7 @@ var Mustache = (function(undefined) {
 			
 			if (state.metrics.character === 1 && state.leadingWhitespace !== '') {
 				var leadingWhitespace = state.leadingWhitespace;
-				state.send_code_func(function(/*context*/) { return leadingWhitespace; });
+				state.assemble(function(/*context*/) { return leadingWhitespace; });
 			}
 		
 			if (token.indexOf(state.openTag)===0) {
@@ -278,7 +278,7 @@ var Mustache = (function(undefined) {
 			, standalone: make_standalone()
 			, leadingWhitespace: ''
 			, code: code
-			, send_code_func: function(f) {
+			, assemble: function(f) {
 				code.push(f);
 			}
 		};
@@ -370,7 +370,7 @@ var Mustache = (function(undefined) {
 			// hold on to the token for later reference
 			var standalone = state.standalone;
 			standalone.token = token;
-			state.send_code_func(function(/*context*/) {
+			state.assemble(function(/*context*/) {
 				if (!standalone.is_standalone) {
 					return token;
 				}
@@ -378,7 +378,7 @@ var Mustache = (function(undefined) {
 		} else if (!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1) {
 			// all other cases switch over to non-standalone mode
 			state.standalone.is_standalone = false;
-			state.send_code_func(function(/*context*/) { return token; });
+			state.assemble(function(/*context*/) { return token; });
 		}
 	}
 
@@ -393,7 +393,7 @@ var Mustache = (function(undefined) {
 		// interpolation tags are always non-standalone
 		state.standalone.is_standalone = false;
 		
-		state.send_code_func((function(variable, escape) { return function(context) {
+		state.assemble((function(variable, escape) { return function(context) {
 			var value = find(variable, context);
 			
 			if (value!==undefined) {
@@ -431,7 +431,7 @@ var Mustache = (function(undefined) {
 			state.partials[variable] = compile(new_state);
 		}
 		
-		state.send_code_func(function(context) { return state.partials[variable](context); });
+		state.assemble(function(context) { return state.partials[variable](context); });
 	}
 	
 	function section(state) {
@@ -444,14 +444,14 @@ var Mustache = (function(undefined) {
 		program = compile(new_state);
 		
 		if (s.inverted) {
-			state.send_code_func((function(program, variable){ return function(context) {
+			state.assemble((function(program, variable){ return function(context) {
 				var value = find(variable, context);
 				if (!value || is_array(value) && value.length === 0) { // false or empty list, render it
 					return program(context);
 				}
 			};})(program, s.variable));
 		} else {
-			state.send_code_func((function(program, variable, template, partials){ return function(context) {
+			state.assemble((function(program, variable, template, partials){ return function(context) {
 				var value = find(variable, context), frag = '';
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
@@ -475,7 +475,7 @@ var Mustache = (function(undefined) {
 						return compile(new_state)(context);
 					});
 				} else if (value) { // truthy
-					frag += program(context);
+					frag += program(context) || '';
 				}
 				return frag;
 			};})(program, s.variable, template, state.partials));
@@ -545,7 +545,7 @@ var Mustache = (function(undefined) {
 			, matches[1]
 			, matches[2]);
 		new_state.code = state.code;
-		new_state.send_code_func = state.send_code_func;
+		new_state.assemble = state.assemble;
 		new_state.parser = state.parser;
 		new_state.metrics.line = state.metrics.line;
 		new_state.metrics.character = state.metrics.character + token.length;
