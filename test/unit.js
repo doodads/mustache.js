@@ -1,13 +1,13 @@
 test("Argument validation", function() {
-	equals(Mustache.to_html(undefined), '', 'No parameters');
-	equals(Mustache.to_html('{{hi}}'), '', ' No View or Partials');
-	equals(Mustache.to_html('{{hi}}', {hi:'Hi.'}), 'Hi.', 'No Partials');
-	equals(Mustache.to_html('{{>hi}}', undefined, {hi:'{{p}}'}), '', 'Partial but no view');
+	equal(Mustache.to_html(undefined), '', 'No parameters');
+	equal(Mustache.to_html('{{hi}}'), '', ' No View or Partials');
+	equal(Mustache.to_html('{{hi}}', {hi:'Hi.'}), 'Hi.', 'No Partials');
+	equal(Mustache.to_html('{{>hi}}', undefined, {hi:'{{p}}'}), '', 'Partial but no view');
 });
 
 test("Parser", function() {
 	// matches whitespace_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{  greeting  }}</h1>\n{{> partial }}\n<h3>{{ farewell }}</h3>',
 			{
@@ -34,7 +34,7 @@ test("Parser", function() {
 		'Whitespace in Tag names'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{tag1}}\n\n\n{{tag2}}\n',
 			{ tag1: 'Hello', tag2: 'World' },
@@ -71,12 +71,12 @@ test("Parser", function() {
 	var partials = { 'partial' : '{{key}}' };
 	Mustache.compile('{{>partial}}', partials );
 	
-	equals(partials['partial'], '{{key}}', 'Partials compiler must be non-destructive');
+	equal(partials['partial'], '{{key}}', 'Partials compiler must be non-destructive');
 });
 
 test("Basic Variables", function() {
 	// matches escaped.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{title}}</h1>\nBut not {{entities}}.\n',
 			{
@@ -92,7 +92,7 @@ test("Basic Variables", function() {
 	);
 		
 	// matches apostrophe.html (except in this implementation, apostrophes are not escaped.
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{apos}}{{control}}',
 			{ apos: '\'', control: 'X' },
@@ -103,7 +103,7 @@ test("Basic Variables", function() {
 	);
 	
 	// matches null_string.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'Hello {{name}}\nglytch {{glytch}}\nbinary {{binary}}\nvalue {{value}}\nnumeric {{numeric}}',
 			{
@@ -122,7 +122,7 @@ test("Basic Variables", function() {
 	);
 	
 	// matches two_in_a_row.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{greeting}}, {{name}}!',
 			{
@@ -137,7 +137,7 @@ test("Basic Variables", function() {
 });
 
 test("Dot Notation", function() {
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{a.b.c}}',
 			{ a: { b: { c: 0 } } },
@@ -146,7 +146,7 @@ test("Dot Notation", function() {
 		'0'
 	);
 
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{a.b.c}}',
 			{ a: { b: {} } },
@@ -155,7 +155,7 @@ test("Dot Notation", function() {
 		''
 	);
 
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{a.b.c}}',
 			{ a: { b: 0 } },
@@ -164,7 +164,7 @@ test("Dot Notation", function() {
 		''
 	);
 
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{a.b.c}}',
 			{ a: { b: function() { return { c: 5 } } } },
@@ -173,7 +173,7 @@ test("Dot Notation", function() {
 		'5'
 	);	
 
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#a.b.c}}{{d}}{{/a.b.c}}',
 			{ a: { b: function() { return { c: [ {d: 'a'}, {d: 'b'}, {d: 'c'} ] } } } },
@@ -186,7 +186,7 @@ test("Dot Notation", function() {
 
 test("'{' or '&' (Unescaped Variable)", function() {
 	// matches unescaped.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{{title}}}</h1>',
 			{
@@ -200,7 +200,7 @@ test("'{' or '&' (Unescaped Variable)", function() {
 		'{ character'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{&title}}</h1>',
 			{
@@ -214,7 +214,7 @@ test("'{' or '&' (Unescaped Variable)", function() {
 		'& character'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{title}}}</h1>',
 			{ title: 'Bear > Shark' }
@@ -227,7 +227,7 @@ test("'{' or '&' (Unescaped Variable)", function() {
 
 test("'#' (Sections)", function() {
 	// matches array_of_partials_implicit_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'Here is some stuff!\n{{#numbers}}\n{{>partial}}\n{{/numbers}}',
 			{ numbers: ['1', '2', '3', '4'] },
@@ -238,7 +238,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches array_of_partials_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'Here is some stuff!\n{{#numbers}}\n{{>partial}}\n{{/numbers}}',
 			{ numbers: [{i: '1'}, {i: '2'}, {i: '3'}, {i: '4'}] },
@@ -249,7 +249,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches array_of_strings.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#array_of_strings}}{{.}} {{/array_of_strings}}',
 			{array_of_strings: ['hello', 'world']},
@@ -260,7 +260,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// mathces higher_order_sections.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#bolder}}Hi {{name}}.{{/bolder}}\n',
 			{
@@ -278,7 +278,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches recursion_with_same_names.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{ name }}\n{{ description }}\n\n{{#terms}}\n  {{name}}\n  {{index}}\n{{/terms}}\n',
 			{
@@ -295,7 +295,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches reuse_of_enumerables.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#terms}}\n  {{name}}\n  {{index}}\n{{/terms}}\n{{#terms}}\n  {{name}}\n  {{index}}\n{{/terms}}\n',
 			{
@@ -311,7 +311,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches section_as_context.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#a_object}}\n  <h1>{{title}}</h1>\n  <p>{{description}}</p>\n  <ul>\n    {{#a_list}}\n    <li>{{label}}</li>\n    {{/a_list}}\n  </ul>\n{{/a_object}}\n',
 			{
@@ -328,7 +328,7 @@ test("'#' (Sections)", function() {
 	);
 	
 	// matches nesting.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#foo}}\n  {{#a}}\n    {{b}}\n  {{/a}}\n{{/foo}}',
 			{
@@ -347,7 +347,7 @@ test("'#' (Sections)", function() {
 
 test("'^' (Inverted Section)", function() {
 	// matches inverted_section.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#repo}}<b>{{name}}</b>{{/repo}}\n{{^repo}}No repos :({{/repo}}\n',
 			{
@@ -361,7 +361,7 @@ test("'^' (Inverted Section)", function() {
 
 test("'>' (Partials)", function() {
 	// matches view_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{greeting}}</h1>\n{{>partial}}\n<h3>{{farewell}}</h3>',
 			{
@@ -388,7 +388,7 @@ test("'>' (Partials)", function() {
 	);
 	
 	// matches array_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{>partial}}',
 			{ 
@@ -402,7 +402,7 @@ test("'>' (Partials)", function() {
 	);
 	
 	// matches template_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{title}}</h1>\n{{>partial}}',
 			{
@@ -419,7 +419,7 @@ test("'>' (Partials)", function() {
 	);
 	
 	// matches partial_recursion.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{name}}\n{{#kids}}\n{{>partial}}\n{{/kids}}',
 			{
@@ -454,7 +454,7 @@ test("'>' (Partials)", function() {
 
 test("'=' (Set Delimiter)", function() {
 	// matches delimiter.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{=<% %>=}}*\n<% first %>\n* <% second %>\n<%=| |=%>\n* | third |\n|={{ }}=|\n* {{ fourth }}',
 			{
@@ -469,7 +469,7 @@ test("'=' (Set Delimiter)", function() {
 		'Simple Set Delimiter'
 	);
 		
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#noData}}{{=~~ ~~=}}Set Change Delimiter ~~data~~ ~~={{ }}=~~{{/noData}}'
 			, {
@@ -483,23 +483,23 @@ test("'=' (Set Delimiter)", function() {
 });
 
 test("'!' (Comments)", function() {
-	equals(
+	equal(
 		Mustache.to_html('{{! this is a single line comment !}}'),
 		'',
 		'Single Line Comments');
 
-	equals(
+	equal(
 		Mustache.to_html('{{!this is a multiline comment\ni said this is a multiline comment!}}'),
 		'',
 		'Multiline Comments');
 			
-	equals(
+	equal(
 		Mustache.to_html('{{!this {{is}} {{#a}} {{/multiline}} comment\ni {{^said}} ! hello !! bye!}}'),
 		'',
 		'Correct tokenization');
 
 	// matches comments.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<h1>{{title}}{{! just something interesting... or not... !}}</h1>\n',
 			{
@@ -515,7 +515,7 @@ test("'!' (Comments)", function() {
 
 test("'%' (Pragmas)", function() {
 	// matches array_of_strings_options.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{%IMPLICIT-ITERATOR iterator=rob}}\n{{#array_of_strings_options}}{{rob}} {{/array_of_strings_options}}',
 			{array_of_strings_options: ['hello', 'world']},
@@ -541,7 +541,7 @@ test("'%' (Pragmas)", function() {
 		'Notification of unimplemented pragmas'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{%IMPLICIT-ITERATOR}}{{#dataSet}}{{.}}:{{/dataSet}}',
 			{ dataSet: [ 'Object 1', 'Object 2', 'Object 3' ] },
@@ -551,7 +551,7 @@ test("'%' (Pragmas)", function() {
 		'Default behaviour for IMPLICIT ITERATOR'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{=<% %>=}}{{%IMPLICIT-ITERATOR iterator=rob}}<%#dataSet%><%rob%>:<%/dataSet%>',
 			{ dataSet: [ 'Object 1', 'Object 2', 'Object 3' ] },
@@ -579,7 +579,7 @@ test("'%' (Pragmas)", function() {
 
 test("Empty", function() {
 	// matches empty_template.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'<html><head></head><body><h1>Test</h1></body></html>',
 			{},
@@ -590,7 +590,7 @@ test("Empty", function() {
 	);
 	
 	// matches empty_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'hey {{foo}}\n{{>partial}}\n',
 			{
@@ -605,7 +605,7 @@ test("Empty", function() {
 
 test("Demo", function() {
 	// matches simple.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'Hello {{name}}\nYou have just won ${{value}}!\n{{#in_ca}}\nWell, ${{ taxed_value }}, after taxes.\n{{/in_ca}}',
 			{
@@ -664,7 +664,7 @@ test("Demo", function() {
 	
 	var expected_result = '<h1>Colors</h1>\n\n  <ul>\n  \n  \n      <li><strong>red</strong></li>\n  \n  \n      <li><a href=\"#Red\">red</a></li>\n  \n  \n  \n  \n      <li><a href=\"#Green\">green</a></li>\n  \n  \n  \n  \n      <li><a href=\"#Blue\">blue</a></li>\n  \n  \n  </ul>\n\n';
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			template,
 			view,
@@ -731,7 +731,7 @@ test("Error Handling", function() {
 
 test("Regression Suite", function() {
 	// matches bug_11_eating_whitespace.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{tag}} foo',
 			{ tag: "yo" },
@@ -742,7 +742,7 @@ test("Regression Suite", function() {
 	);
 	
 	// matches delimiters_partial.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#enumerate}}\n{{>partial}}\n{{/enumerate}}',
 			{ enumerate: [ { text: 'A' }, { text: 'B' } ] },
@@ -753,7 +753,7 @@ test("Regression Suite", function() {
 	);
 	
 	// matches bug_46_set_delimiter.html
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{=[[ ]]=}}[[#IsMustacheAwesome]]mustache is awesome![[/IsMustacheAwesome]]', 
 			{IsMustacheAwesome: true}, 
@@ -764,7 +764,7 @@ test("Regression Suite", function() {
 	);
 	
 	// matches Issue #79
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{#inner}}{{f}}{{#inner}}{{b}}{{/inner}}{{/inner}}'
 			, {
@@ -781,7 +781,7 @@ test("Regression Suite", function() {
 		, 'Nested Sections with the same name'
 	);
 	
-	equals(
+	equal(
 		Mustache.to_html(
 			'{{=~~ ~~=}} ~~>staticInfoPanel~~ ~~={{ }}=~~'
 			, {}
@@ -791,32 +791,32 @@ test("Regression Suite", function() {
 		, 'Change Delimiter + Partial');
 		
 	// matches Issue #141
-	equals(
+	equal(
 		Mustache.to_html("You said '{{{html}}}' today", { html: "I like {{mustache}}" })
 		, "You said 'I like {{mustache}}' today"
 		, 'No recursive parsing');
 		
 	// matches Issue #148
-	equals(
+	equal(
 		Mustache.to_html("{{#items}}{{name}}{{#items}}{{.}}{{/items}}{{/items}}", {items: [{name: 'name', items: [1,2,3,4]}]})
 		, "name1234"
 		, "Nested Lists with the same name");
 });
 
 test("Mustache.format", function() {
-	equals(
+	equal(
 		Mustache.format('{{0}} {{1}}, {{2}} {{3}}.', 'And', 'it', 'was', 'good'),
 		'And it, was good.',
 		'Simple Version'
 	);
 	
-	equals(
+	equal(
 		Mustache.format('{{0}}', function() { return 'Groucho Marx'; } ),
 		'Groucho Marx',
 		'With Functions'
 	);
 	
-	equals(
+	equal(
 		Mustache.format('{{0}}'),
 		'',
 		'Insufficient parameters (no failure)'
