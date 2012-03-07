@@ -106,6 +106,7 @@ var Mustache = (function(undefined) {
 
 	/* BEGIN Helpers */
 	function noop() {}
+	var toStr = Object.prototype.toString;
 	
 	var escapeCompiledRegex;
 	function escape_regex(text) {
@@ -139,7 +140,7 @@ var Mustache = (function(undefined) {
 	}
 
 	function is_array(a) {
-		return Object.prototype.toString.call(a) === '[object Array]';
+		return toStr.call(a) === '[object Array]';
 	}
 
 	// Checks whether a value is truthy or false or 0
