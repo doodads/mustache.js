@@ -278,7 +278,6 @@ var Mustache = (function(undefined) {
 			, standalone: make_standalone()
 			, leadingWhitespace: ''
 			, code: code
-			, frag: ''
 			, send_code_func: function(f) {
 				code.push(f);
 			}
