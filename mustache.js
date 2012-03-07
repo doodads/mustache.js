@@ -453,14 +453,17 @@ var Mustache = (function(undefined) {
 			};})(program, s.variable));
 		} else {
 			state.assemble((function(program, variable, template, partials){ return function(context) {
-				var value = find(variable, context), frag = '';
+				var value = find(variable, context), frag = '', 
+					cLen, i, n;
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
-					for (var i=0, n=value.length; i<n; ++i) {
-						context.push(value[i]);
+					context.push(null);
+					cLen = context.length - 1;
+					for (i=0, n=value.length; i<n; ++i) {
+						context[cLen] = value[i];
 						frag += program(context) || '';
-						context.pop();
 					}
+					context.pop();
 					context.pop();
 				} else if (is_object(value)) { // Object, Use it as subcontext!
 					context.push(value);
