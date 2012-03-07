@@ -433,7 +433,7 @@ var Mustache = (function(undefined) {
 	}
 	
 	function section(state) {
-		var s = state.section, template = s.template_buffer.join(''),
+		var s = state.section, template = s.template_buffer,
 			program, 
 			new_state = create_compiler_state(template, state.partials, state.openTag, state.closeTag);
 		
@@ -468,14 +468,14 @@ var Mustache = (function(undefined) {
 					// this is slow (in relation to a fully compiled template) 
 					// since it invokes a call to the parser
 					send_func(value.call(context[context.length-1], template, function(hosFragment) {
-						var o = [],
-							user_send_func = function(str) { o.push(str); };
+						var o = '',
+							user_send_func = function(str) { o+=str; };
 					
 						var new_state = create_compiler_state(hosFragment, partials);
 						new_state.metrics.partial = 'HOS@@anon';
 						compile(new_state)(context, user_send_func);
 						
-						return o.join('');
+						return o;
 					}));
 				} else if (value) { // truthy
 					program(context, send_func);
@@ -555,7 +555,7 @@ var Mustache = (function(undefined) {
 		new_state.section = state.section;
 		new_state.standalone = state.standalone;
 		if (new_state.section) {
-			new_state.section.template_buffer.push(token);
+			new_state.section.template_buffer += token;
 		}
 		
 		state.terminated = true; // finish off this level
@@ -565,12 +565,12 @@ var Mustache = (function(undefined) {
 	
 	function push_section_token(state, token, unconditional) {
 		if (state.section.lookahead_token || state.section.lookahead_token === '') {
-			state.section.template_buffer.push(state.section.lookahead_token);
+			state.section.template_buffer += state.section.lookahead_token;
 			state.section.lookahead_token = undefined;
 		}
 		
 		if (unconditional) {
-			state.section.template_buffer.push(token);
+			state.section.template_buffer += token;
 		} else {
 			state.section.lookahead_token = token;
 		}
@@ -584,7 +584,7 @@ var Mustache = (function(undefined) {
 			state.parser = scan_section_parser;
 			state.section = {
 				variable: variable
-				, template_buffer: []
+				, template_buffer: ''
 				, lookahead_token: undefined
 				, inverted: inverted
 				, child_sections: []
@@ -606,7 +606,7 @@ var Mustache = (function(undefined) {
 	}
 	
 	function buffer_section_text(state, token) {
-		if (state.section.template_buffer.length === 0 && is_newline(token) && state.standalone.is_standalone) {
+		if (state.section.template_buffer === '' && is_newline(token) && state.standalone.is_standalone) {
 			// if the first token being added to the section is a newline character,
 			// and the line is determined to be standalone, then the newline is ignored
 			token = '';
@@ -693,15 +693,15 @@ var Mustache = (function(undefined) {
 		
 			program = compile(create_compiler_state(template, p));
 			return function(view, send_func) {
-				var o = [],
+				var o = '',
 					user_send_func = send_func || function(str) {
-						o.push(str);
+						o+=str;
 					};
 					
 				program([view || {}], user_send_func);
 				
 				if (!send_func) {
-					return o.join('');
+					return o;
 				}
 			}
 		},
