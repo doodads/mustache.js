@@ -104,12 +104,9 @@ var Mustache = (function(undefined) {
 		}
 	})();
 
-	/* BEGIN Constants */
-	var IMPLICIT_ITERATOR_PRAGMA_TOKEN = 'IMPLICIT-ITERATOR';
-	/* END Constants */
-	
 	/* BEGIN Helpers */
 	function noop() {}
+	var toStr = Object.prototype.toString;
 	
 	var escapeCompiledRegex;
 	function escape_regex(text) {
@@ -125,9 +122,13 @@ var Mustache = (function(undefined) {
 		return text.replace(escapeCompiledRegex, '\\$1');
 	}
 	
-	var newlineCompiledRegex = /\r?\n/;
+	var newlineCompiledRegex = /^\r?\n$/;
 	function is_newline(token) {
 		return token.match(newlineCompiledRegex);
+	}
+	
+	function is_whitespace(token) {
+		return token.match(/^\s*$/);
 	}
 	
 	function is_function(a) {
@@ -139,7 +140,7 @@ var Mustache = (function(undefined) {
 	}
 
 	function is_array(a) {
-		return Object.prototype.toString.call(a) === '[object Array]';
+		return toStr.call(a) === '[object Array]';
 	}
 
 	// Checks whether a value is truthy or false or 0
@@ -147,11 +148,12 @@ var Mustache = (function(undefined) {
 		return bool === false || bool === 0 || bool;
 	}
 
-	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g;
+	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g, escapeRegex4 = /"/g;
 	function escapeHTML(str) {
 		return str.replace(escapeRegex1,'&amp;')
 			.replace(escapeRegex2,'&lt;')
-			.replace(escapeRegex3,'&gt;');
+			.replace(escapeRegex3,'&gt;')
+			.replace(escapeRegex4,'&quot;');
 	}
 
 	var MustacheError = function(message, metrics) {
@@ -179,6 +181,10 @@ var Mustache = (function(undefined) {
 
 	/* BEGIN Compiler */
 		
+	function make_standalone() {
+		return { is_standalone: true, tags: 0 };
+	}
+		
 	function compile(state, noReturn) {
 		var n, c, token;
 		
@@ -188,8 +194,18 @@ var Mustache = (function(undefined) {
 				continue;
 			}
 			
+			if (state.standalone.tags > 1) {
+				state.standalone.is_standalone = false;
+			}
+			
+			if (state.metrics.character === 1 && state.leadingWhitespace !== '') {
+				var leadingWhitespace = state.leadingWhitespace;
+				state.assemble(function(/*context*/) { return leadingWhitespace; });
+			}
+		
 			if (token.indexOf(state.openTag)===0) {
 				c = token.charAt(state.openTag.length);
+				state.standalone.tags++;
 				if (state.parser[c]) {
 					state.parser[c](state, token, c);
 				} else {
@@ -202,9 +218,14 @@ var Mustache = (function(undefined) {
 			if (is_newline(token)) {
 				state.metrics.character = 1;
 				state.metrics.line++;
+				state.standalone = make_standalone();
 			} else {
 				state.metrics.character+=token.length;
 			}
+		}
+		
+		if (state.standalone.tags === 0) {
+			state.standalone.is_standalone = false;
 		}
 		
 		if (state.parser === scan_section_parser && !state.terminated) {
@@ -212,15 +233,17 @@ var Mustache = (function(undefined) {
 		}
 		
 		if (!noReturn) {
-			return function(context, send_func) {
-				for (var i=0;fn=state.code[i++];) {
-					fn(context, send_func);
+			return function(context) {
+				var res = '', i, fn;
+				for (i=0;fn=state.code[i++];) {
+					res += fn(context) || '';
 				}
+				return res;
 			};
 		}
 	}
 	
-	var default_tokenizer = /(\r?\n)|({{![\s\S]*?!}})|({{[#\^\/&>]?\s*[^!{=]\S*?\s*}})|({{{\s*\S*?\s*}}})|({{=\S*?\s*\S*?=}})/;
+	var default_tokenizer = /(\r?\n)|({{![\s\S]*?!}})|({{[#\^\/&>]?\s*[^!{=]\S*?\s*}})|({{{\s*\S*?\s*}}})|({{=\s*\S*?\s*\S*?\s*=}})/;
 	function create_compiler_state(template, partials, openTag, closeTag) {
 		openTag = openTag || '{{';
 		closeTag = closeTag || '}}';
@@ -237,7 +260,7 @@ var Mustache = (function(undefined) {
 				, '(' + rOTag + '![\\s\\S]*?!' + rETag + ')' // comments
 				, '(' + rOTag + '[#\^\/&>]?\\s*[^!{=]\\S*?\\s*' + rETag + ')' // all other tags
 				, '(' + rOTag + '{\\s*\\S*?\\s*}' + rETag + ')' // { unescape token
-				, '(' + rOTag + '=\\S*?\\s*\\S*?=' + rETag + ')' // set delimiter change
+				, '(' + rOTag + '=\\s*\\S*?\\s*\\S*?=\\s*' + rETag + ')' // set delimiter change
 			];
 			tokenizer = new RegExp(parts.join('|'));
 		}
@@ -253,14 +276,13 @@ var Mustache = (function(undefined) {
 			, openTag: openTag
 			, closeTag: closeTag
 			, parser: default_parser
-			, pragmas: {}
+			, standalone: make_standalone()
+			, leadingWhitespace: ''
 			, code: code
-			, send_code_func: function(f) {
+			, assemble: function(f) {
 				code.push(f);
 			}
 		};
-		
-		pragmas(state); // use pragmas to control parsing behaviour
 		
 		// tokenize and initialize a cursor
 		state.tokens = splitFunc.call(state.template, tokenizer);
@@ -269,59 +291,11 @@ var Mustache = (function(undefined) {
 		return state;
 	}
 	
-	var pragma_directives = {};
-	pragma_directives[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = function(state, options) {
-		state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] = {iterator: ((options || {iterator:undefined}).iterator) || '.'};
-	};
-		
-	function pragmas(state) {
-		/* includes tag */
-		function includes(needle, haystack) {
-			return haystack.indexOf('{{' + needle) !== -1;
-		}
-		
-		// no pragmas, easy escape
-		if(!includes("%", state.template)) {
-			return state.template;
-		}
-
-		state.template = state.template.replace(/{{%([\w-]+)(\s*)(.*?(?=}}))}}/g, function(match, pragma, space, suffix) {
-			var options = undefined,
-				optionPairs, scratch,
-				i, n;
-			
-			if (suffix.length>0) {
-				optionPairs = suffix.split(',');
-				
-				options = {};
-				for (i=0, n=optionPairs.length; i<n; ++i) {
-					scratch = optionPairs[i].split('=');
-					if (scratch.length !== 2) {
-						throw new MustacheError('Malformed pragma option "' + optionPairs[i] + '".');
-					}
-					options[scratch[0]] = scratch[1];
-				}
-			}
-			
-			if (is_function(pragma_directives[pragma])) {
-				pragma_directives[pragma](state, options);
-			} else {
-				throw new MustacheError('This implementation of mustache does not implement the "' + pragma + '" pragma.', undefined);
-			}
-
-			return ''; // blank out all pragmas
-		});
-	}
-	
 	/* END Compiler */
 	
 	/* BEGIN Run Time Helpers */
 	
-	/*
-	find `name` in current `context`. That is find me a value
-	from the view object
-	*/
-	function find(name, context) {
+	function coerce(name, context) {
 		var value = context[name];
 		
 		if (is_kinda_truthy(value)) {
@@ -334,22 +308,51 @@ var Mustache = (function(undefined) {
 	}
 	
 	function find_in_stack(name, context_stack) {
-		var value = find(name, context_stack[context_stack.length-1]);
-		if (value!==undefined) { return value; }
+		var value = undefined, 
+			n = context_stack.length, i = n, j;
 		
-		if (context_stack.length>1) {
-			value = find(name, context_stack[0]);
-			if (value!==undefined) { return value; }
-		}
+		do {
+			value = coerce(name, context_stack[--i]);
+			if (value!==undefined) { 
+				if (i > 0 && (is_object(value) || is_array(value))) {
+					// if the value has the potential of creating a stack-entry, 
+					// do a ref comparison on the remaining stack entries
+					for (j = i + 1; j < n; ++j) {
+						if (context_stack[j] === value) {
+							value = undefined;
+							break;
+						}
+					}
+					
+					if (value === undefined) {
+						continue;
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		} while (i !== 0);
+		
+		return value;
 	}
 	
-	function find_with_dot_notation(name, context) {
+	/*
+	find `name` in current `context`. That is find me a value
+	from the view object
+	*/
+	function find(name, context) {
+		if (name === '.') {
+			return coerce('.', { '.' : context[context.length-1] });
+		}
+		
 		var name_components = name.split('.'),
 			i = 1, n = name_components.length,
 			value = find_in_stack(name_components[0], context);
 			
 		while (value && i<n) {
-			value = find(name_components[i], value);
+			value = coerce(name_components[i], value);
 			i++;
 		}
 		
@@ -363,7 +366,21 @@ var Mustache = (function(undefined) {
 	/* END Run Time Helpers */
 
 	function text(state, token) {
-		state.send_code_func(function(context, send_func) { send_func(token); });
+		if (state.metrics.character===1 && is_whitespace(token) && !is_newline(token)) {
+			// if at the start of a line and the token is whitespace
+			// hold on to the token for later reference
+			var standalone = state.standalone;
+			standalone.token = token;
+			state.assemble(function(/*context*/) {
+				if (!standalone.is_standalone) {
+					return token;
+				}
+			});
+		} else if (!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1) {
+			// all other cases switch over to non-standalone mode
+			state.standalone.is_standalone = false;
+			state.assemble(function(/*context*/) { return token; });
+		}
 	}
 
 	function interpolate(state, token, mark) {
@@ -374,24 +391,20 @@ var Mustache = (function(undefined) {
 			escape = prefix = true;
 		}
 		
-		state.send_code_func((function(variable, implicit_iterator, escape) { return function(context, send_func) {
-			var value;
-			
-			if ( variable === implicit_iterator ) { // special case for implicit iterator (usually '.')
-				value = {}; value[implicit_iterator] = context[context.length-1];
-				value = find(variable, value);
-			} else {
-				value = find_with_dot_notation(variable, context);
-			}
+		// interpolation tags are always non-standalone
+		state.standalone.is_standalone = false;
+		
+		state.assemble((function(variable, escape) { return function(context) {
+			var value = find(variable, context);
 			
 			if (value!==undefined) {
 				if (!escape) {
 					value = escapeHTML('' + value);
 				}
 				
-				send_func('' + value);
+				return '' + value;
 			}
-		};})(get_variable_name(state, token, prefix, postfix), (state.pragmas[IMPLICIT_ITERATOR_PRAGMA_TOKEN] || {iterator: '.'}).iterator, escape));
+		};})(get_variable_name(state, token, prefix, postfix), escape));
 	}
 	
 	function partial(state, token) {
@@ -399,12 +412,11 @@ var Mustache = (function(undefined) {
 			template, program;
 		
 		if (!state.partials[variable]) {
-			throw new MustacheError('Unknown partial "' + variable + '".', state.metrics);
+			state.partials[variable] = noop;
 		}
 		
+		// if the partial has not been compiled yet, do so now
 		if (!is_function(state.partials[variable])) {
-			// if the partial has not been compiled yet, do so now
-			
 			template = state.partials[variable]; // remember what the partial was
 			state.partials[variable] = noop; // avoid infinite recursion
 			
@@ -412,78 +424,61 @@ var Mustache = (function(undefined) {
 				template
 				, state.partials
 			);
+			new_state.leadingWhitespace += state.leadingWhitespace;
+			if (state.standalone.is_standalone) {
+				new_state.leadingWhitespace += state.standalone.token || '';
+			}
 			new_state.metrics.partial = variable;
-			// TODO: Determine if partials should inherit pragma state from parent
-			program = compile(new_state);
-			
-			state.partials[variable] = function(context, send_func) {
-				var value = find_in_stack(variable, context);
-
-				if (value) {
-					// TODO: According to mustache-spec, partials do not act as implicit sections
-					// this behaviour was carried over from janl's mustache and should either
-					// be discarded or replaced with a pragma
-					context.push(value);
-				}
-
-				program(context, send_func);
-				
-				if (value) {
-					// TODO: See above
-					context.pop();
-				}
-			};
+			state.partials[variable] = compile(new_state);
 		}
 		
-		state.send_code_func(function(context, send_func) { state.partials[variable](context, send_func); });
+		state.assemble(function(context) { return state.partials[variable](context); });
 	}
 	
 	function section(state) {
-		var s = state.section, template = s.template_buffer.join(''),
+		var s = state.section, template = s.template_buffer,
 			program, 
 			new_state = create_compiler_state(template, state.partials, state.openTag, state.closeTag);
 		
+		new_state.standalone.is_standalone = s.standalone.is_standalone;
 		new_state.metrics = s.metrics;
-		new_state.pragmas = state.pragmas;
 		program = compile(new_state);
 		
 		if (s.inverted) {
-			state.send_code_func((function(program, variable){ return function(context, send_func) {
-				var value = find_with_dot_notation(variable, context);
+			state.assemble((function(program, variable){ return function(context) {
+				var value = find(variable, context);
 				if (!value || is_array(value) && value.length === 0) { // false or empty list, render it
-					program(context, send_func);
+					return program(context);
 				}
 			};})(program, s.variable));
 		} else {
-			state.send_code_func((function(program, variable, template, partials){ return function(context, send_func) {
-				var value = find_with_dot_notation(variable, context);
+			state.assemble((function(program, variable, template, partials){ return function(context) {
+				var value = find(variable, context), frag = '';
 				if (is_array(value)) { // Enumerable, Let's loop!
+					context.push(value);
 					for (var i=0, n=value.length; i<n; ++i) {
 						context.push(value[i]);
-						program(context, send_func);
+						frag += program(context) || '';
 						context.pop();
 					}
+					context.pop();
 				} else if (is_object(value)) { // Object, Use it as subcontext!
 					context.push(value);
-					program(context, send_func);
+					frag += program(context) || '';
 					context.pop();
 				} else if (is_function(value)) { // higher order section
 					// note that HOS triggers a compilation on the hosFragment.
 					// this is slow (in relation to a fully compiled template) 
 					// since it invokes a call to the parser
-					send_func(value.call(context[context.length-1], template, function(hosFragment) {
-						var o = [],
-							user_send_func = function(str) { o.push(str); };
-					
-						var new_state = create_compiler_state(hosFragment, partials);
+					frag += value.call(context[context.length-1], template, function(hosFragment) {
+						new_state = create_compiler_state(hosFragment, partials);
 						new_state.metrics.partial = 'HOS@@anon';
-						compile(new_state)(context, user_send_func);
-						
-						return o.join('');
-					}));
+						return compile(new_state)(context);
+					});
 				} else if (value) { // truthy
-					program(context, send_func);
+					frag += program(context) || '';
 				}
+				return frag;
 			};})(program, s.variable, template, state.partials));
 		}
 	}
@@ -513,7 +508,7 @@ var Mustache = (function(undefined) {
 		'>': buffer_section,
 		'=': change_delimiter,
 		def: buffer_section,
-		text: buffer_section
+		text: buffer_section_text
 	};
 		
 	function get_variable_name(state, token, prefix, postfix) {
@@ -535,8 +530,11 @@ var Mustache = (function(undefined) {
 		return fragment;
 	}
 	
+	var changeDelimiterRegex = /=\s*(\S*?)\s*(\S*?)\s*=/;
 	function change_delimiter(state, token) {
-		var matches = token.match(new RegExp(escape_regex(state.openTag) + '=(\\S*?)\\s*(\\S*?)=' + escape_regex(state.closeTag)));
+		var matches = token
+			.substring(state.openTag.length, token.length - state.closeTag.length)
+			.match(changeDelimiterRegex);
 
 		if ((matches || []).length!==3) {
 			throw new MustacheError('Malformed change delimiter token "' + token + '".', state.metrics);
@@ -548,20 +546,33 @@ var Mustache = (function(undefined) {
 			, matches[1]
 			, matches[2]);
 		new_state.code = state.code;
-		new_state.send_code_func = state.send_code_func;
+		new_state.assemble = state.assemble;
 		new_state.parser = state.parser;
 		new_state.metrics.line = state.metrics.line;
 		new_state.metrics.character = state.metrics.character + token.length;
 		new_state.metrics.partial = state.metrics.partial;
 		new_state.section = state.section;
-		new_state.pragmas = state.pragmas;
+		new_state.standalone = state.standalone;
 		if (new_state.section) {
-			new_state.section.template_buffer.push(token);
+			new_state.section.template_buffer += token;
 		}
 		
 		state.terminated = true; // finish off this level
 		
 		compile(new_state, true);
+	}
+	
+	function push_section_token(state, token, unconditional) {
+		if (state.section.lookahead_token || state.section.lookahead_token === '') {
+			state.section.template_buffer += state.section.lookahead_token;
+			state.section.lookahead_token = undefined;
+		}
+		
+		if (unconditional) {
+			state.section.template_buffer += token;
+		} else {
+			state.section.lookahead_token = token;
+		}
 	}
 	
 	function begin_section(state, token, mark) {
@@ -572,7 +583,8 @@ var Mustache = (function(undefined) {
 			state.parser = scan_section_parser;
 			state.section = {
 				variable: variable
-				, template_buffer: []
+				, template_buffer: ''
+				, lookahead_token: undefined
 				, inverted: inverted
 				, child_sections: []
 				, metrics: {
@@ -580,15 +592,32 @@ var Mustache = (function(undefined) {
 					, line: state.metrics.line
 					, character: state.metrics.character + token.length
 				}
+				, standalone: state.standalone
 			};
 		} else {
 			state.section.child_sections.push(variable);
-			state.section.template_buffer.push(token);
+			push_section_token(state, token, true);
 		}
 	}
 	
 	function buffer_section(state, token) {
-		state.section.template_buffer.push(token);
+		push_section_token(state, token, true);
+	}
+	
+	function buffer_section_text(state, token) {
+		if (state.section.template_buffer === '' && is_newline(token) && state.standalone.is_standalone) {
+			// if the first token being added to the section is a newline character,
+			// and the line is determined to be standalone, then the newline is ignored
+			token = '';
+		} else if (
+			(state.metrics.character!==1 || !is_whitespace(token)) && (
+			!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1))
+		{
+			// all other cases switch over to non-standalone mode
+			state.standalone.is_standalone = false;
+		}
+
+		push_section_token(state, token, false);
 	}
 	
 	function end_section(state, token) {
@@ -598,11 +627,42 @@ var Mustache = (function(undefined) {
 			var child_section = state.section.child_sections[state.section.child_sections.length-1];
 			if (child_section === variable) {
 				state.section.child_sections.pop();
-				state.section.template_buffer.push(token);
+				push_section_token(state, token, true);
 			} else {
 				throw new MustacheError('Unexpected section end tag "' + variable + '", expected "' + child_section + '".', state.metrics);
 			}
 		} else if (state.section.variable===variable) {
+			// look-ahead to see if another token on this line flips the standalone flag
+			// the very last token to be inserted into the section is conditional on the line being standalone or not
+			if (state.section.lookahead_token && 
+				is_whitespace(state.section.lookahead_token) && 
+				!is_newline(state.section.lookahead_token) && 
+				state.standalone.is_standalone)
+			{
+				var n, c, token;
+				for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
+					token = state.tokens[c];
+					if (token==='' || token===undefined) {
+						continue;
+					}
+					
+					if (is_newline(token)) {
+						break;
+					}
+					
+					if (!is_whitespace(token)) {
+						state.standalone.is_standalone = false;
+						break;
+					}
+				}
+				
+				if (!state.standalone.is_standalone) {
+					push_section_token(state, '', true);
+				}
+			} else {
+				push_section_token(state, '', true);
+			}
+			
 			section(state);
 			delete state.section;
 			state.parser = default_parser;
@@ -615,46 +675,36 @@ var Mustache = (function(undefined) {
 	
 	return({
 		name: "mustache.js",
-		version: "0.5.2-vcs",
+		version: "0.6.0-vsc",
 
 		/* 
 		Turns a template into a JS function
 		*/
 		compile: function(template, partials) {
-			var p = {};
+			var p = {}, key, program;
 			if (partials) {
-				for (var key in partials) {
+				for (key in partials) {
 					if (partials.hasOwnProperty(key)) {
 						p[key] = partials[key];
 					}
 				}
 			}
 		
-			var program = compile(create_compiler_state(template, p));
-			return function(view, send_func) {
-				var o = [],
-					user_send_func = send_func || function(str) {
-						o.push(str);
-					};
-					
-				program([view || {}], user_send_func);
-				
-				if (!send_func) {
-					return o.join('');
-				}
-			}
+			program = compile(create_compiler_state(template, p));
+			return function(view) {
+				return program([view || {}]);
+			};
 		},
 		
 		/*
-		Turns a template and view into HTML
+		Renders a template given a specific set of data
 		*/
-		to_html: function(template, view, partials, send_func) {
-			var result = Mustache.compile(template, partials)(view, send_func);
-			
-			if (!send_func) {
-				return result;
-			}
+		render: function(template, view, partials) {
+			return Mustache.compile(template, partials)(view);
 		},
+		
+		/* alias to render for backwards compatibility */
+		to_html: function() { return Mustache.render.apply(null, arguments); },
 		
 		format: function(template/*, args */) {
 			var view = Array.prototype.slice.call(arguments);
