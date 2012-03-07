@@ -721,13 +721,8 @@ var Mustache = (function(undefined) {
 		to_html: function() { return Mustache.render.apply(null, arguments); },
 		
 		format: function(template/*, args */) {
-			var args = Array.prototype.slice.call(arguments),
-				view = {};
-			
-			args.shift();
-			for (var i = 0, n = args.length; i < n; ++i) {
-				view['' + i] = args[i];
-			}
+			var view = Array.prototype.slice.call(arguments);
+			view.shift();
 			
 			return Mustache.compile(template)(view);
 		},
