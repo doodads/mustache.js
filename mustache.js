@@ -199,7 +199,7 @@ var Mustache = (function(undefined) {
 			
 			if (state.metrics.character === 1 && state.leadingWhitespace !== '') {
 				var leadingWhitespace = state.leadingWhitespace;
-				state.send_code_func(function(context, send_func) { send_func(leadingWhitespace); });
+				state.send_code_func(function(/*context*/) { return leadingWhitespace; });
 			}
 		
 			if (token.indexOf(state.openTag)===0) {
@@ -232,10 +232,12 @@ var Mustache = (function(undefined) {
 		}
 		
 		if (!noReturn) {
-			return function(context, send_func) {
-				for (var i=0;fn=state.code[i++];) {
-					fn(context, send_func);
+			return function(context) {
+				var res = '', i, fn;
+				for (i=0;fn=state.code[i++];) {
+					res += fn(context) || '';
 				}
+				return res;
 			};
 		}
 	}
@@ -276,6 +278,7 @@ var Mustache = (function(undefined) {
 			, standalone: make_standalone()
 			, leadingWhitespace: ''
 			, code: code
+			, frag: ''
 			, send_code_func: function(f) {
 				code.push(f);
 			}
@@ -368,15 +371,15 @@ var Mustache = (function(undefined) {
 			// hold on to the token for later reference
 			var standalone = state.standalone;
 			standalone.token = token;
-			state.send_code_func(function(context, send_func) {
+			state.send_code_func(function(/*context*/) {
 				if (!standalone.is_standalone) {
-					send_func(token);
+					return token;
 				}
 			});
 		} else if (!state.standalone.is_standalone || !is_newline(token) || state.standalone.tags !== 1) {
 			// all other cases switch over to non-standalone mode
 			state.standalone.is_standalone = false;
-			state.send_code_func(function(context, send_func) { send_func(token); });
+			state.send_code_func(function(/*context*/) { return token; });
 		}
 	}
 
@@ -391,7 +394,7 @@ var Mustache = (function(undefined) {
 		// interpolation tags are always non-standalone
 		state.standalone.is_standalone = false;
 		
-		state.send_code_func((function(variable, escape) { return function(context, send_func) {
+		state.send_code_func((function(variable, escape) { return function(context) {
 			var value = find(variable, context);
 			
 			if (value!==undefined) {
@@ -399,7 +402,7 @@ var Mustache = (function(undefined) {
 					value = escapeHTML('' + value);
 				}
 				
-				send_func('' + value);
+				return '' + value;
 			}
 		};})(get_variable_name(state, token, prefix, postfix), escape));
 	}
@@ -429,7 +432,7 @@ var Mustache = (function(undefined) {
 			state.partials[variable] = compile(new_state);
 		}
 		
-		state.send_code_func(function(context, send_func) { state.partials[variable](context, send_func); });
+		state.send_code_func(function(context) { return state.partials[variable](context); });
 	}
 	
 	function section(state) {
@@ -442,44 +445,40 @@ var Mustache = (function(undefined) {
 		program = compile(new_state);
 		
 		if (s.inverted) {
-			state.send_code_func((function(program, variable){ return function(context, send_func) {
+			state.send_code_func((function(program, variable){ return function(context) {
 				var value = find(variable, context);
 				if (!value || is_array(value) && value.length === 0) { // false or empty list, render it
-					program(context, send_func);
+					return program(context);
 				}
 			};})(program, s.variable));
 		} else {
-			state.send_code_func((function(program, variable, template, partials){ return function(context, send_func) {
-				var value = find(variable, context);
+			state.send_code_func((function(program, variable, template, partials){ return function(context) {
+				var value = find(variable, context), frag = '';
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
 					for (var i=0, n=value.length; i<n; ++i) {
 						context.push(value[i]);
-						program(context, send_func);
+						frag += program(context) || '';
 						context.pop();
 					}
 					context.pop();
 				} else if (is_object(value)) { // Object, Use it as subcontext!
 					context.push(value);
-					program(context, send_func);
+					frag += program(context) || '';
 					context.pop();
 				} else if (is_function(value)) { // higher order section
 					// note that HOS triggers a compilation on the hosFragment.
 					// this is slow (in relation to a fully compiled template) 
 					// since it invokes a call to the parser
-					send_func(value.call(context[context.length-1], template, function(hosFragment) {
-						var o = '',
-							user_send_func = function(str) { o+=str; };
-					
-						var new_state = create_compiler_state(hosFragment, partials);
+					frag += value.call(context[context.length-1], template, function(hosFragment) {
+						new_state = create_compiler_state(hosFragment, partials);
 						new_state.metrics.partial = 'HOS@@anon';
-						compile(new_state)(context, user_send_func);
-						
-						return o;
-					}));
+						return compile(new_state)(context);
+					});
 				} else if (value) { // truthy
-					program(context, send_func);
+					frag += program(context);
 				}
+				return frag;
 			};})(program, s.variable, template, state.partials));
 		}
 	}
@@ -692,29 +691,16 @@ var Mustache = (function(undefined) {
 			}
 		
 			program = compile(create_compiler_state(template, p));
-			return function(view, send_func) {
-				var o = '',
-					user_send_func = send_func || function(str) {
-						o+=str;
-					};
-					
-				program([view || {}], user_send_func);
-				
-				if (!send_func) {
-					return o;
-				}
-			}
+			return function(view) {
+				return program([view || {}]);
+			};
 		},
 		
 		/*
 		Renders a template given a specific set of data
 		*/
-		render: function(template, view, partials, send_func) {
-			var result = Mustache.compile(template, partials)(view, send_func);
-			
-			if (!send_func) {
-				return result;
-			}
+		render: function(template, view, partials) {
+			return Mustache.compile(template, partials)(view);
 		},
 		
 		/* alias to render for backwards compatibility */
