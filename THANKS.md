@@ -21,7 +21,7 @@ Mustache.js wouldn't kick ass if it weren't for these fine souls:
  * Aaron Gibralter / agibralter
  * Ross Boucher / boucher
 
-## doodad Branch:
+## doodads Branch:
 
  * Gregory Jacobs / gjslick
  

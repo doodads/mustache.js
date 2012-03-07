@@ -1,5 +1,11 @@
 # mustache.js Changes
 
+## 0.6.0-vsc
+
+* [Mustache-spec complaint](https://github.com/mustache/spec)
+* (Borrowed from mainline Mustache) Removal of streaming function support
+* (Borrowed from mainline Mustache) Removal of pragma support
+
 ## 0.5.2-vcs
 
 * Fixed a scoping bug (thanks gjslick)
