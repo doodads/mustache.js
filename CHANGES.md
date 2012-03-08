@@ -1,10 +1,10 @@
 # mustache.js Changes
 
-## 0.6.1-vsc
+## 0.6.1-vcs
 
 * Big speedup in find function.
 
-## 0.6.0-vsc
+## 0.6.0-vcs
 
 * [Mustache-spec complaint](https://github.com/mustache/spec)
 * (Borrowed from mainline Mustache) Removal of streaming function support
@@ -12,7 +12,7 @@
 
 ## 0.5.2-vcs
 
-* Fixed a scoping bug (thanks gjslick)
+* Fixed a scoping bug (thanks @gjslick)
 * Added Mustache.format function (similar to String.format from C#)
 
 ## 0.5.1-vcs
