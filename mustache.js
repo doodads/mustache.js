@@ -307,14 +307,14 @@ var Mustache = (function(undefined) {
 		}
 	}
 	
-	function find_in_stack(name, context_stack) {
+	function find_in_stack(name, context_stack, breakLoops) {
 		var value = undefined, 
 			n = context_stack.length, i = n, j;
 		
 		do {
 			value = coerce(name, context_stack[--i]);
 			if (value!==undefined) { 
-				if (i > 0 && (is_object(value) || is_array(value))) {
+				if (!!breakLoops && i > 0 && (is_object(value) || is_array(value))) {
 					// if the value has the potential of creating a stack-entry, 
 					// do a ref comparison on the remaining stack entries
 					for (j = i + 1; j < n; ++j) {
@@ -342,14 +342,14 @@ var Mustache = (function(undefined) {
 	find `name` in current `context`. That is find me a value
 	from the view object
 	*/
-	function find(name, context) {
+	function find(name, context, breakLoops) {
 		if (name === '.') {
 			return coerce('.', { '.' : context[context.length-1] });
 		}
 		
-		var name_components = name.split('.'),
+		var name_components = name.indexOf('.') === -1 ? [name] : name.split('.'),
 			i = 1, n = name_components.length,
-			value = find_in_stack(name_components[0], context);
+			value = find_in_stack(name_components[0], context, breakLoops);
 			
 		while (value && i<n) {
 			value = coerce(name_components[i], value);
@@ -453,7 +453,7 @@ var Mustache = (function(undefined) {
 			};})(program, s.variable));
 		} else {
 			state.assemble((function(program, variable, template, partials){ return function(context) {
-				var value = find(variable, context), frag = '', 
+				var value = find(variable, context, true), frag = '', 
 					cLen, i, n;
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
