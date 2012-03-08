@@ -1,5 +1,9 @@
 # mustache.js Changes
 
+## 0.6.1-vsc
+
+* Big speedup in find function.
+
 ## 0.6.0-vsc
 
 * [Mustache-spec complaint](https://github.com/mustache/spec)
