@@ -25,7 +25,7 @@
 * Correct Set Delimiter implementation
 * Implements & unescaping character
 * Multiline Comments
-* Syntactically Important Whitespace (Issues 25, 41, 48, and 67)
+* Syntactically Important Whitespace (Issues #25, #41, #48, and #67)
 * QUnit unit tests
 
 ## 0.3.0 (21-07-2010)
