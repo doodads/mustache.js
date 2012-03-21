@@ -678,7 +678,7 @@ var Mustache = (function(undefined) {
 	
 	return({
 		name: "mustache.js",
-		version: "0.6.0-vsc",
+		version: "0.6.1-vsc",
 
 		/* 
 		Turns a template into a JS function
