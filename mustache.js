@@ -454,15 +454,21 @@ var Mustache = (function(undefined) {
 		} else {
 			state.assemble((function(program, variable, template, partials){ return function(context) {
 				var value = find(variable, context, true), frag = '', 
-					cLen, i, n;
+					cLen, i, n, $$ = { $: { index: 0, count: 1, first: 0, last: 0 } };
 				if (is_array(value)) { // Enumerable, Let's loop!
 					context.push(value);
+					context.push($$);
 					context.push(null);
 					cLen = context.length - 1;
 					for (i=0, n=value.length; i<n; ++i) {
 						context[cLen] = value[i];
+						$$.$.index = i;
+						$$.$.count = i+1;
+						$$.$.first = i===0;
+						$$.$.last = i===n-1;
 						frag += program(context) || '';
 					}
+					context.pop();
 					context.pop();
 					context.pop();
 				} else if (is_object(value)) { // Object, Use it as subcontext!

@@ -1,5 +1,9 @@
 # mustache.js Changes
 
+## 0.6.2-vcs
+
+* Add Enhanced loop feature from pull request 205 in master branch
+
 ## 0.6.1-vcs
 
 * Big speedup in find function.

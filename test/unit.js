@@ -749,6 +749,21 @@ test("Mustache.format", function() {
 	);
 });
 
+test("Enhanced Loops", function() {
+	equal(
+		Mustache.to_html(
+			"Loop '{{title}}':\n{{#listA}}\n{{$.index}} = {{.}}\n{{/listA}}\n\n{{#listA}}\n{{$.count}}\n{{/listA}}\n\n{{#listB}}{{^ $.first}},{{/$.first}}{{.}}{{# $.last}}*{{/$.last}}{{/listB}}"
+			, {
+				title : "Super Loop"
+				, listA: ["zero", "one", "two"]
+				, listB: [0,1,2]
+			}
+		)
+		, "Loop 'Super Loop':\n0 = zero\n1 = one\n2 = two\n\n1\n2\n3\n\n0,1,2*"
+		, "Enhanced Loops"
+	);
+});
+
 function spec_tests(json) {
 	for (var i=0,n=json.tests.length;i<n;++i) {
 		equal(Mustache.to_html(json.tests[i].template, json.tests[i].data, json.tests[i].partials || {}), json.tests[i].expected, json.tests[i].name + ' (' + json.tests[i].desc + ')');
