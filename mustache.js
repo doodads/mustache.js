@@ -148,13 +148,24 @@ var Mustache = (function(undefined) {
 		return bool === false || bool === 0 || bool;
 	}
 
-	var escapeRegex1 = /&/g, escapeRegex2 = /</g, escapeRegex3 = />/g, escapeRegex4 = /"/g;
-	function escapeHTML(str) {
-		return str.replace(escapeRegex1,'&amp;')
-			.replace(escapeRegex2,'&lt;')
-			.replace(escapeRegex3,'&gt;')
-			.replace(escapeRegex4,'&quot;');
-	}
+	var escapeHTML = (function() {
+		var compiledRegex = /[&<>'"]/g,
+			MAP = {
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#39;'
+			};
+
+		function remap(c) {
+			return MAP[c];
+		}
+		
+		return function(s) {
+			return s.replace(compiledRegex, remap);
+		}
+	})();
 
 	var MustacheError = function(message, metrics) {
 		var str = '';

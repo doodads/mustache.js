@@ -98,7 +98,7 @@ test("Basic Variables", function() {
 			{ apos: '\'', control: 'X' },
 			{}
 		),
-		'\'X',
+		'&#39;X',
 		'Apostrophe escaping'
 	);
 	

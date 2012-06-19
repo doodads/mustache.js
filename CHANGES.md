@@ -3,6 +3,7 @@
 ## 0.6.2-vcs
 
 * Add Enhanced loop feature from pull request 205 in master branch
+* Speed up escapeHTML function
 
 ## 0.6.1-vcs
 
