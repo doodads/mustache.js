@@ -462,7 +462,34 @@ test("'=' (Set Delimiter)", function() {
 			, {}
 		)
 		, 'Set Change Delimiter false '
-		, 'Change Delimiter inside Section');	
+		, 'Change Delimiter inside Section');
+		
+	equal(
+		Mustache.to_html(
+			'{{=@@ }}=}}@@bugsbunny}}'
+			, { bugsbunny: 'Bugs Bunny' }
+		)
+		, 'Bugs Bunny'
+		, 'Change open token only'
+	);
+	
+	equal(
+		Mustache.to_html(
+			'{{={{ @@=}}{{bugsbunny@@'
+			, { bugsbunny: 'Bugs Bunny' }
+		)
+		, 'Bugs Bunny'
+		, 'Change close token only'
+	);
+	
+	equal(
+		Mustache.to_html(
+			'{{={{ }}=}}{{bugsbunny}}'
+			, { bugsbunny: 'Bugs Bunny' }
+		)
+		, 'Bugs Bunny'
+		, 'Identity transform'
+	);
 });
 
 test("'!' (Comments)", function() {
@@ -816,6 +843,7 @@ test("Spec - Interpolation", function() {
 			{"name":"Dotted Names - Broken Chains","data":{"a":{}},"expected":"\"\" == \"\"","template":"\"{{a.b.c}}\" == \"\"","desc":"Any falsey value prior to the last part of the name should yield ''."},
 			{"name":"Dotted Names - Broken Chain Resolution","data":{"a":{"b":{}},"c":{"name":"Jim"}},"expected":"\"\" == \"\"","template":"\"{{a.b.c.name}}\" == \"\"","desc":"Each part of a dotted name should resolve only against its parent."},
 			{"name":"Dotted Names - Initial Resolution","data":{"a":{"b":{"c":{"d":{"e":{"name":"Phil"}}}}},"b":{"c":{"d":{"e":{"name":"Wrong"}}}}},"expected":"\"Phil\" == \"Phil\"","template":"\"{{#a}}{{b.c.d.e.name}}{{/a}}\" == \"Phil\"","desc":"The first part of a dotted name should resolve as any other name."},
+			{"name":"Dotted Names - Context Precedence","data":{"a":{"b":{}},"b":{"c":"ERROR"}},"expected":"","template":"{{#a}}{{b.c}}{{/a}}","desc":"Dotted names should be resolved against former resolutions."},
 			{"name":"Interpolation - Surrounding Whitespace","data":{"string":"---"},"expected":"| --- |","template":"| {{string}} |","desc":"Interpolation should not alter surrounding whitespace."},
 			{"name":"Triple Mustache - Surrounding Whitespace","data":{"string":"---"},"expected":"| --- |","template":"| {{{string}}} |","desc":"Interpolation should not alter surrounding whitespace."},
 			{"name":"Ampersand - Surrounding Whitespace","data":{"string":"---"},"expected":"| --- |","template":"| {{&string}} |","desc":"Interpolation should not alter surrounding whitespace."},
