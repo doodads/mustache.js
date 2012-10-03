@@ -8,6 +8,8 @@
 */
 
 var Mustache = (function(undefined) {
+	'use strict';
+	
 	var splitFunc = (function() {
 		// fix up the stupidness that is IE's broken String.split implementation
 		/* Cross-Browser Split 1.0.1
@@ -17,7 +19,7 @@ var Mustache = (function(undefined) {
 		var compliantExecNpcg = /()??/.exec("")[1] === undefined; // NPCG: nonparticipating capturing group
 		function capturingSplit(separator) {
 			var str = this;
-			var limit = undefined;
+			var limit;
 			
 			// if `separator` is not a regex, use the native `split`
 			if (Object.prototype.toString.call(separator) !== "[object RegExp]") {
@@ -29,12 +31,12 @@ var Mustache = (function(undefined) {
 				flags = (separator.ignoreCase ? "i" : "") +
 						(separator.multiline  ? "m" : "") +
 						(separator.sticky     ? "y" : ""),
-				separator = RegExp(separator.source, flags + "g"), // make `global` and avoid `lastIndex` issues by working with a copy
+				separator = new RegExp(separator.source, flags + "g"), // make `global` and avoid `lastIndex` issues by working with a copy
 				separator2, match, lastIndex, lastLength;
 
 			str = str + ""; // type conversion
 			if (!compliantExecNpcg) {
-				separator2 = RegExp("^" + separator.source + "$(?!\\s)", flags); // doesn't need /g or /y, but they don't hurt
+				separator2 = new RegExp("^" + separator.source + "$(?!\\s)", flags); // doesn't need /g or /y, but they don't hurt
 			}
 
 			/* behavior for `limit`: if it's...
@@ -164,7 +166,7 @@ var Mustache = (function(undefined) {
 		
 		return function(s) {
 			return s.replace(compiledRegex, remap);
-		}
+		};
 	})();
 
 	var MustacheError = function(message, metrics) {
@@ -267,30 +269,30 @@ var Mustache = (function(undefined) {
 				rETag = escape_regex(closeTag);
 
 			var parts = [
-				'(\\r?\\n)' // new lines
-				, '(' + rOTag + '![\\s\\S]*?!' + rETag + ')' // comments
-				, '(' + rOTag + '[#\^\/&>]?\\s*[^!{=]\\S*?\\s*' + rETag + ')' // all other tags
-				, '(' + rOTag + '{\\s*\\S*?\\s*}' + rETag + ')' // { unescape token
-				, '(' + rOTag + '=\\s*\\S*?\\s*\\S*?=\\s*' + rETag + ')' // set delimiter change
+				'(\\r?\\n)', // new lines
+				'(' + rOTag + '![\\s\\S]*?!' + rETag + ')', // comments
+				'(' + rOTag + '[#\^\/&>]?\\s*[^!{=]\\S*?\\s*' + rETag + ')', // all other tags
+				'(' + rOTag + '{\\s*\\S*?\\s*}' + rETag + ')', // { unescape token
+				'(' + rOTag + '=\\s*\\S*?\\s*\\S*?=\\s*' + rETag + ')' // set delimiter change
 			];
 			tokenizer = new RegExp(parts.join('|'));
 		}
 
 		var code = [], state =  {
 			metrics: {
-				partial: null
-				, line: 1
-				, character: 1
-			}
-			, template: template || ''
-			, partials: partials || {}
-			, openTag: openTag
-			, closeTag: closeTag
-			, parser: default_parser
-			, standalone: make_standalone()
-			, leadingWhitespace: ''
-			, code: code
-			, assemble: function(f) {
+				partial: null,
+				line: 1,
+				character: 1
+			},
+			template: template || '',
+			partials: partials || {},
+			openTag: openTag,
+			closeTag: closeTag,
+			parser: default_parser,
+			standalone: make_standalone(),
+			leadingWhitespace: '',
+			code: code,
+			assemble: function(f) {
 				code.push(f);
 			}
 		};
@@ -319,7 +321,7 @@ var Mustache = (function(undefined) {
 	}
 	
 	function find_in_stack(name, context_stack, breakLoops) {
-		var value = undefined, 
+		var value, 
 			n = context_stack.length, i = n, j;
 		
 		do {
@@ -432,8 +434,8 @@ var Mustache = (function(undefined) {
 			state.partials[variable] = noop; // avoid infinite recursion
 			
 			var new_state = create_compiler_state(
-				template
-				, state.partials
+				template,
+				state.partials
 			);
 			new_state.leadingWhitespace += state.leadingWhitespace;
 			if (state.standalone.is_standalone) {
@@ -533,8 +535,8 @@ var Mustache = (function(undefined) {
 		
 	function get_variable_name(state, token, prefix, postfix) {
 		var fragment = token.substring(
-			state.openTag.length + (prefix ? 1 : 0)
-			, token.length - state.closeTag.length - (postfix ? 1 : 0)
+			state.openTag.length + (prefix ? 1 : 0),
+			token.length - state.closeTag.length - (postfix ? 1 : 0)
 		);
 		
 		if (String.prototype.trim) {
@@ -561,10 +563,10 @@ var Mustache = (function(undefined) {
 		}
 		
 		var new_state = create_compiler_state(
-			state.tokens.slice(state.cursor+1).join('')
-			, state.partials
-			, matches[1]
-			, matches[2]);
+			state.tokens.slice(state.cursor+1).join(''),
+			state.partials,
+			matches[1],
+			matches[2]);
 		new_state.code = state.code;
 		new_state.assemble = state.assemble;
 		new_state.parser = state.parser;
@@ -602,17 +604,17 @@ var Mustache = (function(undefined) {
 		if (state.parser===default_parser) {
 			state.parser = scan_section_parser;
 			state.section = {
-				variable: variable
-				, template_buffer: ''
-				, lookahead_token: undefined
-				, inverted: inverted
-				, child_sections: []
-				, metrics: {
-					partial: state.metrics.partial
-					, line: state.metrics.line
-					, character: state.metrics.character + token.length
-				}
-				, standalone: state.standalone
+				variable: variable,
+				template_buffer: '',
+				lookahead_token: undefined,
+				inverted: inverted,
+				child_sections: [],
+				metrics: {
+					partial: state.metrics.partial,
+					line: state.metrics.line,
+					character: state.metrics.character + token.length
+				},
+				standalone: state.standalone
 			};
 		} else {
 			state.section.child_sections.push(variable);
@@ -659,18 +661,18 @@ var Mustache = (function(undefined) {
 				!is_newline(state.section.lookahead_token) && 
 				state.standalone.is_standalone)
 			{
-				var n, c, token;
+				var n, c, sectionToken;
 				for (c = state.cursor + 1, n = state.tokens.length;c<n;++c) {
-					token = state.tokens[c];
-					if (token==='' || token===undefined) {
+					sectionToken = state.tokens[c];
+					if (sectionToken==='' || sectionToken===undefined) {
 						continue;
 					}
 					
-					if (is_newline(token)) {
+					if (is_newline(sectionToken)) {
 						break;
 					}
 					
-					if (!is_whitespace(token)) {
+					if (!is_whitespace(sectionToken)) {
 						state.standalone.is_standalone = false;
 						break;
 					}
