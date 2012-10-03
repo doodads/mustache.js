@@ -1,6 +1,6 @@
 var fs = require('fs'),
-	sys = require('sys'),
 	util = require('util'),
+	jshint = require('jshint'),
 	uglify = require('uglify-js');
 
 function copyFile(src, dst, cb) {
@@ -36,8 +36,21 @@ function makeDirectoryIfNotExists(path) {
 	}
 }
 
+desc('Code Lint');
+task('lint', function() {
+	var all = fs.readFileSync('mustache.js').toString();
+	
+	var result = jshint.JSHINT(all, {}, {});
+	if (!result) {
+		for (var i = 0; i < jshint.JSHINT.errors.length; i++) {
+			var error = jshint.JSHINT.errors[i];
+			console.error('line: ' + error.line + ', char ' + error.character + ': ' + error.reason);
+		}
+	}
+});
+
 desc('Obfuscation and Compression');
-task('minify', function() {
+task('minify', ['lint'], function() {
 	var all = fs.readFileSync('mustache.js').toString(),
 		out = fs.openSync('mustache.min.js', 'w+'),
 		ast = uglify.parser.parse(all);
@@ -108,3 +121,5 @@ task('package', function() {
 		}
 	}
 });
+
+task('default', ['minify'], function() {});
