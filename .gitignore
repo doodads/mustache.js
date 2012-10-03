@@ -1,2 +1,3 @@
 packages/**
 support/**
+node_modules/**
