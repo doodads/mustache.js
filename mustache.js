@@ -1,3 +1,4 @@
+/*jshint bitwise:true, curly:true, eqeqeq:true, immed:true, latedef:true, undef:true, unused:true */
 /*
   mustache.js — Logic-less templates in JavaScript
 
@@ -17,9 +18,11 @@ var Mustache = (function(undefined) {
 		An ECMA-compliant, uniform cross-browser split method 
 		*/
 		var compliantExecNpcg = /()??/.exec("")[1] === undefined; // NPCG: nonparticipating capturing group
-		function capturingSplit(separator) {
+		function capturingSplit(sep) {
+			/*jshint validthis:true, boss:true, loopfunc:true */
 			var str = this;
 			var limit;
+			var separator = sep;
 			
 			// if `separator` is not a regex, use the native `split`
 			if (Object.prototype.toString.call(separator) !== "[object RegExp]") {
@@ -31,8 +34,9 @@ var Mustache = (function(undefined) {
 				flags = (separator.ignoreCase ? "i" : "") +
 						(separator.multiline  ? "m" : "") +
 						(separator.sticky     ? "y" : ""),
-				separator = new RegExp(separator.source, flags + "g"), // make `global` and avoid `lastIndex` issues by working with a copy
 				separator2, match, lastIndex, lastLength;
+			
+			separator = new RegExp(separator.source, flags + "g"); // make `global` and avoid `lastIndex` issues by working with a copy
 
 			str = str + ""; // type conversion
 			if (!compliantExecNpcg) {
@@ -199,6 +203,12 @@ var Mustache = (function(undefined) {
 	}
 		
 	function compile(state, noReturn) {
+		function createLeadingWhitespace(leadingWhitespace) {
+			return function(/*context*/) {
+				return leadingWhitespace;
+			};
+		}
+		
 		var n, c, token;
 		
 		for (n = state.tokens.length;state.cursor<n && !state.terminated;++state.cursor) {
@@ -212,8 +222,7 @@ var Mustache = (function(undefined) {
 			}
 			
 			if (state.metrics.character === 1 && state.leadingWhitespace !== '') {
-				var leadingWhitespace = state.leadingWhitespace;
-				state.assemble(function(/*context*/) { return leadingWhitespace; });
+				state.assemble(createLeadingWhitespace(state.leadingWhitespace));
 			}
 		
 			if (token.indexOf(state.openTag)===0) {
@@ -247,6 +256,7 @@ var Mustache = (function(undefined) {
 		
 		if (!noReturn) {
 			return function(context) {
+				/*jshint boss:true */
 				var res = '', i, fn;
 				for (i=0;fn=state.code[i++];) {
 					res += fn(context) || '';
@@ -256,7 +266,7 @@ var Mustache = (function(undefined) {
 		}
 	}
 	
-	var default_tokenizer = /(\r?\n)|({{![\s\S]*?!}})|({{[#\^\/&>]?\s*[^!{=]\S*?\s*}})|({{{\s*\S*?\s*}}})|({{=\s*\S*?\s*\S*?\s*=}})/;
+	var default_tokenizer = /(\r?\n)|(\{\{![\s\S]*?!\}\})|(\{\{[#\^\/&>]?\s*[^!\{=]\S*?\s*\}\})|(\{\{\{\s*\S*?\s*\}\}\})|(\{\{=\s*\S*?\s*\S*?\s*=\}\})/;
 	function create_compiler_state(template, partials, openTag, closeTag) {
 		openTag = openTag || '{{';
 		closeTag = closeTag || '}}';
@@ -271,7 +281,7 @@ var Mustache = (function(undefined) {
 			var parts = [
 				'(\\r?\\n)', // new lines
 				'(' + rOTag + '![\\s\\S]*?!' + rETag + ')', // comments
-				'(' + rOTag + '[#\^\/&>]?\\s*[^!{=]\\S*?\\s*' + rETag + ')', // all other tags
+				'(' + rOTag + '[#^\/&>]?\\s*[^!{=]\\S*?\\s*' + rETag + ')', // all other tags
 				'(' + rOTag + '{\\s*\\S*?\\s*}' + rETag + ')', // { unescape token
 				'(' + rOTag + '=\\s*\\S*?\\s*\\S*?=\\s*' + rETag + ')' // set delimiter change
 			];
@@ -422,7 +432,7 @@ var Mustache = (function(undefined) {
 	
 	function partial(state, token) {
 		var variable = get_variable_name(state, token, true),
-			template, program;
+			template;
 		
 		if (!state.partials[variable]) {
 			state.partials[variable] = noop;
@@ -507,32 +517,6 @@ var Mustache = (function(undefined) {
 
 	/* BEGIN Parser */
 	
-	var default_parser = {
-		'!': noop,
-		'#': begin_section,
-		'^': begin_section,
-		'/': function(state, token) { throw new MustacheError('Unbalanced End Section tag "' + token + '".', state.metrics); },
-		'&': interpolate,
-		'{': interpolate,
-		'>': partial,
-		'=': change_delimiter,
-		def: interpolate,
-		text: text
-	};
-	
-	var scan_section_parser = {
-		'!': noop,
-		'#': begin_section,
-		'^': begin_section,
-		'/': end_section,
-		'&': buffer_section,
-		'{': buffer_section,
-		'>': buffer_section,
-		'=': change_delimiter,
-		def: buffer_section,
-		text: buffer_section_text
-	};
-		
 	function get_variable_name(state, token, prefix, postfix) {
 		var fragment = token.substring(
 			state.openTag.length + (prefix ? 1 : 0),
@@ -552,7 +536,7 @@ var Mustache = (function(undefined) {
 		return fragment;
 	}
 	
-	var changeDelimiterRegex = /=\s*(\S*?)\s*(\S*?)\s*=/;
+	var changeDelimiterRegex = new RegExp('=\\s*(\\S*?)\\s*(\\S*?)\\s*=');
 	function change_delimiter(state, token) {
 		var matches = token
 			.substring(state.openTag.length, token.length - state.closeTag.length)
@@ -693,6 +677,32 @@ var Mustache = (function(undefined) {
 		}
 	}
 		
+	var default_parser = {
+		'!': noop,
+		'#': begin_section,
+		'^': begin_section,
+		'/': function(state, token) { throw new MustacheError('Unbalanced End Section tag "' + token + '".', state.metrics); },
+		'&': interpolate,
+		'{': interpolate,
+		'>': partial,
+		'=': change_delimiter,
+		def: interpolate,
+		text: text
+	};
+	
+	var scan_section_parser = {
+		'!': noop,
+		'#': begin_section,
+		'^': begin_section,
+		'/': end_section,
+		'&': buffer_section,
+		'{': buffer_section,
+		'>': buffer_section,
+		'=': change_delimiter,
+		def: buffer_section,
+		text: buffer_section_text
+	};
+	
 	/* END Parser */
 	
 	return({
