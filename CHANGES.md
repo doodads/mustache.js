@@ -4,6 +4,7 @@
 
 * Add Enhanced loop feature from pull request 205 in master branch
 * Speed up escapeHTML function
+* Use JSHint for linting code now
 
 ## 0.6.1-vcs
 
